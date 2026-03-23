@@ -1,0 +1,17 @@
+# 1. 기밀 정보 (API 키 등)
+.env
+
+# 2. 로컬 텐서 데이터베이스
+chroma_db/
+
+# 3. 파이썬 실행 부산물
+__pycache__/
+*.py[cod]
+
+# 4. 가상환경 (설치된 라이브러리 뭉치)
+venv/
+.venv/
+
+# 5. OS 및 에디터 설정
+.vscode/
+.DS_Store
