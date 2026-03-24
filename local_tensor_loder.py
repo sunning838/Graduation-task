@@ -3,21 +3,24 @@ from dotenv import load_dotenv
 import sys
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 import time
 
 # 윈도우 터미널 출력 텐서 깨짐 방지
 sys.stdout.reconfigure(encoding='utf-8')
 
-print("--- 통합 텐서 추출 파이프라인 가동 ---")
+#데이터베이스 경로 생성
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+persist_directory = os.path.join(CURRENT_DIR, "chroma_db")
 
-# 기존 DB 삭제
+# 기존 임베딩 모델 삭제 후 재구축
 if os.path.exists(persist_directory):
-    print(f"기존 텐서 저장소({persist_directory})를 삭제하고 API 기반으로 새로 구축합니다...")
+    print(f"기존 텐서 저장소({persist_directory})를 삭제하고 로컬 기반으로 새로 구축합니다...")
     shutil.rmtree(persist_directory)
+
+print("--- 통합 텐서 추출 파이프라인 가동 ---")
 
 # 1. 텐서 분할기(Splitter) 세팅
 # MD용: 의미 공간(헤더) 기반 텐서 분할
@@ -90,51 +93,30 @@ if master_tensor_chunks:
     print(f"📌 메타데이터: {master_tensor_chunks[0].metadata}")
     print(f"📝 입력 내용: {master_tensor_chunks[0].page_content[:100]}...")
 
-print("--- 💎 Gemini 텐서 적재 파이프라인 가동 ---")
+print("--- 텐서 적재 파이프라인 가동 ---")
 
-# 1. API 키 설정
-load_dotenv()
-
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
-
-# 2. 임베딩 모델 설정
+# 1. 임베딩 모델 설정
 # 이 모델이 텍스트 조각을 768차원의 숫자 벡터(텐서)로 변환합니다.
-embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+embeddings = HuggingFaceEmbeddings(
+    model_name="jhgan/ko-sroberta-multitask",
+    model_kwargs={'device': 'cpu'}, # GPU가 있다면 'cuda'로 변경 가능
+    encode_kwargs={'normalize_embeddings': True}
+)
 
-# 3. 텐서 저장소(ChromaDB) 경로 설정
-# D 드라이브의 해당 경로에 'chroma_db'라는 저장 창고가 생성됩니다.
-persist_directory = os.path.join(CURRENT_DIR, "chroma_db")
+# 2. 텐서 적재 실행 (스로틀링 배치 아키텍처 적용)
+print(f"[System] 텐서 DB 적재 시작...")
 
-# 4. 텐서 적재 실행 (스로틀링 배치 아키텍처 적용)
-print(f"[System] 텐서 변환 및 DB 적재 시작 (데이터 양: {len(master_tensor_chunks)}개 블록)...")
-
-#   빈 텐서 저장소를 셋업
-vector_db = Chroma(
-    embedding_function=embeddings,
+# ChromaDB 생성 및 데이터 한 번에 주입
+vector_db = Chroma.from_documents(
+    documents=master_tensor_chunks,
+    embedding=embeddings,
     persist_directory=persist_directory
 )
 
-# 무료 API 한도 방어를 위해 90개씩 묶어서(Batch) 텐서를 전송
-batch_size = 90
-
-for i in range(0, len(master_tensor_chunks), batch_size):
-    batch_chunks = master_tensor_chunks[i : i + batch_size]
-    current_end = min(i + batch_size, len(master_tensor_chunks))
-    
-    print(f"🔄 [배치 전송 중] {i+1} ~ {current_end} 번째 텐서 블록 적재 중...")
-    
-    # 해당 배치만큼만 DB에 밀어넣기
-    vector_db.add_documents(documents=batch_chunks)
-    
-    # 아직 보낼 텐서가 남았다면, 1분당 100회 제한을 피하기 위해 60초 대기
-    if i + batch_size < len(master_tensor_chunks):
-        print("⏳ API 트래픽 한도 보호를 위해 60초간 파이프라인을 일시 정지합니다...")
-        time.sleep(60)
-
-# 5. 저장 완료 확인
+# 3. 저장 완료 확인
 print(f"\n✅ [성공] 텐서 저장소 구축 완료! 위치: {persist_directory}")
 
-# 6. 간단한 검색 테스트
+# 4. 간단한 검색 테스트
 query = "폭포수 모형의 특징이 뭐야?"
 docs = vector_db.similarity_search(query, k=1)
 
