@@ -12,3 +12,5 @@
 - Python 3.14
 - LangChain, ChromaDB
 - Google Gemini API
+
+#test ai
