@@ -5,7 +5,7 @@ from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharac
 from langchain_community.document_loaders import TextLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
-import time
+import shutil
 
 # 윈도우 터미널 출력 텐서 깨짐 방지
 sys.stdout.reconfigure(encoding='utf-8')
@@ -25,7 +25,10 @@ print("--- 통합 텐서 추출 파이프라인 가동 ---")
 # 1. 텐서 분할기(Splitter) 세팅
 # MD용: 의미 공간(헤더) 기반 텐서 분할
 headers_to_split_on = [("#", "대분류"), ("##", "중분류"), ("###", "소분류")]
-md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+md_splitter = MarkdownHeaderTextSplitter(
+    headers_to_split_on=headers_to_split_on,
+    strip_headers=False  # 💡 핵심: 헤더(제목) 텍스트를 본문에서 지우지 않고 유지!
+)
 
 # TXT용: 시퀀스 길이 기반 텐서 분할 (1000자 단위, 100자 오버랩으로 문맥 소실 방지)
 txt_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
@@ -116,11 +119,11 @@ vector_db = Chroma.from_documents(
 # 3. 저장 완료 확인
 print(f"\n✅ [성공] 텐서 저장소 구축 완료! 위치: {persist_directory}")
 
-# 4. 간단한 검색 테스트
-query = "폭포수 모형의 특징이 뭐야?"
-docs = vector_db.similarity_search(query, k=1)
+# 간단한 검색 테스트
+# query = "폭포수 모형이란?"
+# docs = vector_db.similarity_search(query, k=1)
 
-print(f"\n🔎 [DB 검색 테스트 결과]")
-if docs:
-    print(f"가장 유사한 텍스트 텐서: {docs[0].page_content[:150]}...")
-    print(f"출처 맵핑 좌표: {docs[0].metadata.get('source', '알 수 없음')}")
+# print(f"\n🔎 [DB 검색 테스트 결과]")
+# if docs:
+#     print(f"가장 유사한 텍스트 텐서: {docs[0].page_content[:150]}...")
+#     print(f"출처 맵핑 좌표: {docs[0].metadata.get('source', '알 수 없음')}") 
