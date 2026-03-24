@@ -87,14 +87,14 @@ for root, dirs, files in os.walk(base_dir):
                 print(f"❌ [에러] {file} 텐서 변환 실패: {e}")
 
 # 4. 최종 텐서 변환 결과 집계
-print(f"\n🎉 [성공] 지정된 폴더의 모든 원시 데이터 파싱 완료!")
-print(f"🧠 총 {len(master_tensor_chunks)}개의 통합 텐서 블록(Chunk)이 생성되어 임베딩 대기 중입니다.")
+print(f"\n [성공] 지정된 폴더의 모든 원시 데이터 파싱 완료!")
+print(f" 총 {len(master_tensor_chunks)}개의 통합 텐서 블록(Chunk)이 생성되어 임베딩 대기 중입니다.")
 
 # 첫 번째 텐서 샘플 맵핑 구조 확인
 if master_tensor_chunks:
     print("\n--- [첫 번째 텐서 블록 좌표 및 시퀀스 샘플] ---")
-    print(f"📌 메타데이터: {master_tensor_chunks[0].metadata}")
-    print(f"📝 입력 내용: {master_tensor_chunks[0].page_content[:100]}...")
+    print(f" 메타데이터: {master_tensor_chunks[0].metadata}")
+    print(f" 입력 내용: {master_tensor_chunks[0].page_content[:100]}...")
 
 print("--- 텐서 적재 파이프라인 가동 ---")
 
@@ -117,7 +117,7 @@ vector_db = Chroma.from_documents(
 )
 
 # 3. 저장 완료 확인
-print(f"\n✅ [성공] 텐서 저장소 구축 완료! 위치: {persist_directory}")
+print(f"\n [성공] 텐서 저장소 구축 완료! 위치: {persist_directory}")
 
 # 간단한 검색 테스트
 # query = "폭포수 모형이란?"

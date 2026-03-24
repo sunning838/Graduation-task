@@ -40,12 +40,12 @@ def search_tensor_db(query, k=3):
 
     for i, (doc, score) in enumerate(docs_and_scores):
         print(f"\n--- [매칭 텐서 {i+1} (거리 점수: {score:.4f})] ---")
-        print(f"📌 출처 맵핑 좌표: {doc.metadata.get('source', '알 수 없음')}")
+        print(f" 출처 맵핑 좌표: {doc.metadata.get('source', '알 수 없음')}")
         # 텐서 내용이 너무 길 수 있으므로 200자만 출력
-        print(f"📝 텐서 내용: {doc.page_content[:200]}...") 
+        print(f" 텐서 내용: {doc.page_content[:200]}...") 
 
 # 5. 테스트 실행부
 if __name__ == "__main__":
     # 여러 가지 질문을 텐서 공간에서 테스트해 봅니다.
-    search_tensor_db("폭포수 모형은?", k=2)
+    search_tensor_db("폭포수 모형이란?", k=2)
     search_tensor_db("XP의 핵심 가치는?", k=1)
