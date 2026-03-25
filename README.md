@@ -12,3 +12,11 @@
 - Python 3.14
 - LangChain, ChromaDB
 - Google Gemini API
+
+## 텐서 구동 환경 설치 방법
+
+프로젝트를 다운로드(Clone)한 후 해당 폴더로 이동합니다.
+
+터미널에서 아래 명령어를 실행하여 텐서 처리 및 데이터베이스 구동에 필요한 모든 모듈을 한 번에 설치합니다.
+
+pip install -r requirements.txt

@@ -27,7 +27,7 @@ print("--- 통합 텐서 추출 파이프라인 가동 ---")
 headers_to_split_on = [("#", "대분류"), ("##", "중분류"), ("###", "소분류")]
 md_splitter = MarkdownHeaderTextSplitter(
     headers_to_split_on=headers_to_split_on,
-    strip_headers=False  # 💡 핵심: 헤더(제목) 텍스트를 본문에서 지우지 않고 유지!
+    strip_headers=False  #헤더(제목) 텍스트를 본문에서 지우지 않고 유지
 )
 
 # TXT용: 시퀀스 길이 기반 텐서 분할 (1000자 단위, 100자 오버랩으로 문맥 소실 방지)
@@ -40,7 +40,7 @@ master_tensor_chunks = []
 base_dir = os.path.join(CURRENT_DIR, "storage")
 
 # 타겟 폴더 필터링 (기출문제 등 불필요한 텐서 유입 차단)
-target_folders = ["data_4"]
+target_folders = ["data_p"]
 
 print("[System] 원시 데이터 스캔 및 텐서 변환 시작...\n")
 
