@@ -2,6 +2,7 @@ import sys
 import os
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
+#streamlit run frontend/app.py 로 실행
 
 # 백엔드 경로 주입
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -64,7 +65,7 @@ if st.session_state.mode == "study":
         with chat_container:
             # 사용자 메시지 표시
             with st.chat_message("user"):
-                st.markdown(user_input)
+                st.mrkdown(user_input)
             st.session_state.messages.append({"role": "user", "content": user_input})
             
             # AI 답변 생성

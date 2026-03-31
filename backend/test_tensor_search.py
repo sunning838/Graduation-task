@@ -3,6 +3,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 import sys
 
+#python .\backend\test_tensor_search.py
+
 # 윈도우 터미널 출력 깨짐 방지
 sys.stdout.reconfigure(encoding='utf-8')
 

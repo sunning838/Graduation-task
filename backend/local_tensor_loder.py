@@ -7,6 +7,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 import shutil
 
+#python .\backend\local_tensor_loder.py 로 실행
+
 # 윈도우 터미널 출력 텐서 깨짐 방지
 sys.stdout.reconfigure(encoding='utf-8')
 
