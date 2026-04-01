@@ -65,7 +65,7 @@ if st.session_state.mode == "study":
         with chat_container:
             # 사용자 메시지 표시
             with st.chat_message("user"):
-                st.mrkdown(user_input)
+                st.markdown(user_input)
             st.session_state.messages.append({"role": "user", "content": user_input})
             
             # AI 답변 생성
