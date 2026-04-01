@@ -30,47 +30,52 @@ class AITutorEngine:
         docs = self.vector_db.similarity_search(query, k=k)
         return "\n\n".join([doc.page_content for doc in docs])
 
-    def generate_response(self, query: str, chat_history: list) -> str:
-        """대화 기록(Memory Tensor)을 포함하여 최종 답변을 생성하는 메인 로직"""
+
+    def generate_response(self, query: str, chat_history: list, student_status: str = "분석된 상태 없음") -> str:
+        """대화 기록(Memory Tensor)과 학생의 상태 텐서를 포함하여 최종 답변을 생성하는 메인 로직"""
         
         context = self.get_relevant_tensor(query)
         
-        # 프롬프트 텐서에 'MessagesPlaceholder'를 추가하여 기억력을 이식!
+        # 시스템 프롬프트 텐서에 [학생의 현재 상태] 영역 추가
         prompt = ChatPromptTemplate.from_messages([
             ("system", """너는 정보처리기사 자격증 합격을 돕는 친절하고 똑똑한 AI 튜터다. 
-주어진 [참고 지식]과 이전 대화 맥락을 바탕으로 학생의 질문에 답변해라. 
+아래의 [학생의 현재 상태]를 반드시 인지하고, 학생이 자신의 취약점이나 성적에 대해 물어보면 이 데이터를 바탕으로 정확하게 대답해라. 
 설명은 이해하기 쉽게 예시를 들어주고, 지식에 없는 내용이라면 모른다고 대답해라.
+
+[학생의 현재 상태]
+{student_status}
 
 [참고 지식]
 {context}"""),
-            # 이곳에 이전까지의 대화 텐서들이 통째로 삽입됨
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{question}")
         ])
         
         chain = prompt | self.llm | StrOutputParser()
         
-        # 연산 실행 시 chat_history 변수도 함께 넘겨줌
+        # 연산 실행 시 student_status 변수도 함께 주입
         return chain.invoke({
             "context": context, 
             "chat_history": chat_history, 
+            "student_status": student_status,
             "question": query
         })
     
-    def generate_quiz(self) -> dict:
-        """지식 공간의 데이터를 기반으로 실제 객관식 문제 텐서를 생성하는 함수"""
+    def generate_quiz(self, target_topic: str = None) -> dict:
+        """지식 공간의 데이터를 기반으로 실제 객관식 문제 텐서를 생성하는 함수 (취약점 타겟팅 지원)"""
         
-        # 1. 벡터 데이터베이스에서 임의의 문서 텐서들을 인출 (다양한 문제 출제를 위해 무작위 검색어 사용)
-        random_keywords = ["데이터", "정규화", "조인", "트랜잭션", "인덱스", "설계", "구조"]
-        search_query = random.choice(random_keywords)
+        topics = [
+            "요구사항 확인", "화면 설계", "데이터 입출력 구현", 
+            "통합 구현", "인터페이스 구현", "소프트웨어 개발 보안 구축",
+            "응용 SW 기초 기술 활용"
+        ]
         
-        # 유사도 검색을 통해 문제 출제용 원천 지식 텐서 확보
-        docs = self.vector_db.similarity_search(search_query, k=2)
+        selected_topic = target_topic if target_topic else random.choice(topics)
+        docs = self.vector_db.similarity_search(selected_topic, k=3)
         context = "\n\n".join([doc.page_content for doc in docs])
 
-        # 2. 문제 출제를 위한 명령 텐서(프롬프트) 설계
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """너는 정보처리기사 자격증 시험을 출제하는 교수다. 
+            ("system", """너는 국가공인 '정보처리기사' 자격증 시험을 출제하는 전담 교수다. 
 주어진 [참고 지식]을 바탕으로 학생이 풀 수 있는 객관식 문제 1개를 출제해라.
 반드시 아래의 출력 형식을 엄격하게 지켜야 하며, 파이썬의 json.loads()로 즉시 파싱 가능한 순수한 JSON 형태만 출력해라. 코드 블록(```json) 같은 감싸기 표식을 쓰지 말고 중괄호로만 시작하고 끝내라.
 
@@ -84,32 +89,29 @@ class AITutorEngine:
 
 [참고 지식]
 {context}"""),
-            ("human", "위 지식을 바탕으로 자격증 시험에 나올법한 객관식 문제를 하나 출제해줘.")
+            ("human", f"위 지식을 바탕으로 '{selected_topic}' 파트에서 자격증 시험에 나올법한 객관식 문제를 하나 출제해줘.")
         ])
 
         chain = prompt | self.llm | StrOutputParser()
         raw_output = chain.invoke({"context": context})
 
-        # 3. 생성된 문자열 텐서를 파이썬 딕셔너리 구조체로 변환
         try:
-            # 혹시 모델이 코드 블록을 붙여 출력할 경우를 대비한 방어 텐서 연산
             clean_output = raw_output.replace("```json", "").replace("```", "").strip()
             quiz_data = json.loads(clean_output)
+            quiz_data["topic"] = selected_topic 
             return quiz_data
         except Exception as e:
-            # 파싱 실패 시 예외 처리용 기본 텐서 반환
             return {
-                "question": "정규화의 목적으로 가장 적절하지 않은 것은?",
-                "choices": ["1) 중복 제거", "2) 이상 현상 방지", "3) 무결성 유지", "4) 저장 공간의 낭비 증가"],
-                "answer": 4,
-                "explanation": "정규화는 데이터 중복을 제거하여 저장 공간을 효율적으로 사용하기 위함입니다."
+                "question": "데이터베이스 설계 순서로 올바른 것은? (파싱 오류 임시 문제)",
+                "choices": ["1) 개념-논리-물리", "2) 물리-논리-개념", "3) 논리-개념-물리", "4) 개념-물리-논리"],
+                "answer": 1,
+                "explanation": "요구사항 분석 후 개념적, 논리적, 물리적 설계 순으로 진행됩니다.",
+                "topic": selected_topic
             }
 
 # --- 실행 테스트 블록 ---
 if __name__ == "__main__":
     tutor = AITutorEngine()
-    
-    # 세션 동안의 대화 텐서를 저장할 빈 리스트 생성 (메모리 모듈)
     session_chat_history = []
     
     print("="*50)
@@ -127,14 +129,12 @@ if __name__ == "__main__":
         print("튜터 : (텐서 맥락 분석 및 답변 생성 중...)")
         
         try:
-            # 질문과 함께 누적된 대화 기록을 튜터 엔진에 전달
+            # 터미널 로컬 테스트 환경에서는 상태 텐서가 없으므로 기본값으로 작동함
             answer = tutor.generate_response(user_input, session_chat_history)
             print(f"\n튜터 : {answer}")
             
-            # 답변이 무사히 생성되면, 현재 턴의 문답을 기억 텐서에 업데이트
             session_chat_history.append(HumanMessage(content=user_input))
             session_chat_history.append(AIMessage(content=answer))
             
         except Exception as e:
             print(f"\n[오류] 텐서 연산 중 문제가 발생했습니다: {e}")
-
