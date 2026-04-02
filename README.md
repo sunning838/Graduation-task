@@ -22,3 +22,5 @@
 터미널에서 아래 명령어를 실행하여 텐서 처리 및 데이터베이스 구동에 필요한 모든 모듈을 한 번에 설치합니다.
 
 pip install -r requirements.txt
+
+streamlit run frontend/app.p 명령어로 서버를 실행합니다
