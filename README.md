@@ -23,4 +23,4 @@
 
 pip install -r requirements.txt
 
-streamlit run frontend/app.p 명령어로 서버를 실행합니다
+streamlit run frontend/app.py 명령어로 서버를 실행합니다

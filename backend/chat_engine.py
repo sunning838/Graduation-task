@@ -108,7 +108,69 @@ class AITutorEngine:
                 "explanation": "요구사항 분석 후 개념적, 논리적, 물리적 설계 순으로 진행됩니다.",
                 "topic": selected_topic
             }
+    def generate_advanced_quiz(self, target_topic: str = None) -> dict:
+        """기출문제 DB 텐서를 인출하여 신규 변형 문제를 생성하는 고급 함수"""
+        
+        topics = [
+            "요구사항 확인", "화면 설계", "데이터 입출력 구현", 
+            "통합 구현", "인터페이스 구현", "소프트웨어 개발 보안 구축",
+            "응용 SW 기초 기술 활용"
+        ]
+        
+        selected_topic = target_topic if target_topic else random.choice(topics)
+        
+        # 1.  핵심 연산: DB에서 검색할 때 filter를 사용하여 'doc_type'이 'quiz'인 텐서만 검색함
+        # 문서가 부족할 수 있으므로 안전하게 k=2로 설정
+        quiz_docs = self.vector_db.similarity_search(
+            query=selected_topic, 
+            k=2, 
+            filter={"doc_type": "quiz"}
+        )
+        
+        # 만약 해당 단원의 기출문제가 아직 DB에 없다면, 일반 개념 기반 출제 모드로 자동 폴백(Fallback)
+        if not quiz_docs:
+            print(f"[시스템] '{selected_topic}' 관련 기출 데이터가 없어 일반 출제 모드로 전환합니다.")
+            return self.generate_quiz(selected_topic)
+            
+        context = "\n\n".join([doc.page_content for doc in quiz_docs])
 
+        # 2. 기출 기반 변형 프롬프트 텐서
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """너는 정보처리기사 전문 출제위원이다. 
+아래의 [실제 기출 데이터]를 분석하여, 이와 유사하지만 똑같지는 않은 '신규 변형 객관식 문제'를 딱 1개만 출제해라.
+
+[변형 규칙]
+1. 핵심 개념은 유지하되, 정답이 되는 보기를 바꾸거나 질문의 상황(예시)을 새롭게 만들어라.
+2. 학생이 헷갈리기 쉬운 매력적인 오답 보기를 포함해라.
+3. 해설에는 "왜 이 보기가 정답이고, 다른 보기는 오답인지" 기출 데이터보다 훨씬 상세하게 적어라.
+4. 반드시 순수한 JSON 형식으로만 출력해라. (코드 블록 기호 제외)
+
+[출력 형식]
+{{
+    "question": "문제 내용",
+    "choices": ["1) 보기1", "2) 보기2", "3) 보기3", "4) 보기4"],
+    "answer": 정답번호(숫자),
+    "explanation": "상세한 해설"
+}}
+
+[실제 기출 데이터]
+{context}"""),
+            ("human", f"위 기출 데이터를 바탕으로 '{selected_topic}' 단원의 실전 변형 문제를 만들어줘.")
+        ])
+
+        chain = prompt | self.llm | StrOutputParser()
+        raw_output = chain.invoke({"context": context})
+
+        # 3. JSON 파싱 및 반환 텐서
+        try:
+            clean_output = raw_output.replace("```json", "").replace("```", "").strip()
+            quiz_data = json.loads(clean_output)
+            quiz_data["topic"] = selected_topic 
+            return quiz_data
+        except Exception as e:
+            # 안전장치: 변형 출제 중 파싱 에러 발생 시 기존 로직으로 재시도
+            return self.generate_quiz(selected_topic)
+        
 # --- 실행 테스트 블록 ---
 if __name__ == "__main__":
     tutor = AITutorEngine()
