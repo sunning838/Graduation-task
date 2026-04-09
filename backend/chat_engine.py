@@ -18,8 +18,9 @@ DB_DIR = os.path.join(CURRENT_DIR, "chroma_db")
 class AITutorEngine:
     def __init__(self):
         print("[시스템] 메모리 텐서가 탑재된 파이프라인 초기화 중...")
-        self.embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask")
-        self.vector_db = Chroma(persist_directory=DB_DIR, embedding_function=self.embeddings)
+        self.embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask",
+        encode_kwargs={'normalize_embeddings': True})
+        self.vector_db = Chroma(persist_directory=DB_DIR, embedding_function=self.embeddings, collection_metadata={"hnsw:space": "cosine"})
         
         # 최신 텐서 모델 유지
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)

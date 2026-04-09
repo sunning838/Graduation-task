@@ -89,13 +89,14 @@ def create_tensor_db():
         return
 
     print(f"\n4. 총 {len(all_chunks)}개의 텐서 조각을 DB에 적재 중... (시간이 조금 걸릴 수 있습니다)")
-    embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask")
+    embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sroberta-multitask",encode_kwargs={'normalize_embeddings': True})
     
     # 꼬리표가 달린 모든 텐서를 한 번에 섞어서 DB에 적재
     Chroma.from_documents(
         documents=all_chunks,
         embedding=embeddings,
-        persist_directory=DB_DIR
+        persist_directory=DB_DIR,
+        collection_metadata={"hnsw:space": "cosine"}
     )
     
     print(f"\n5. 완료! 하이브리드 텐서 DB가 '{DB_DIR}' 폴더에 성공적으로 구축되었습니다.")
