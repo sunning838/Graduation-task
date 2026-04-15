@@ -116,9 +116,9 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
     
     # 상단 타이틀 동적 렌더링
     if st.session_state.mode == "quiz_random":
-        st.header("🎲 실전 대비 무작위 모의고사")
+        st.header(" 실전 대비 무작위 모의고사")
     else:
-        st.header("🎯 AI 분석: 나의 취약 개념 집중 타격")
+        st.header(" AI 분석: 나의 취약 개념 집중 타격")
 
     # 문제 텐서 생성
     if "current_quiz" not in st.session_state:
@@ -141,30 +141,38 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
         
         choice = st.radio("정답을 선택하세요", quiz["choices"], index=None, key="quiz_radio")
         
-        col1, col2 = st.columns([1, 4])
-        with col1:
+        if not st.session_state.submitted:
             if st.button("정답 제출", type="primary"):
-                st.session_state.submitted = True
-
-        with col2:
-            if st.button("🔄 다음 문제"):
-                del st.session_state.current_quiz
-                st.rerun()
-
-        # 채점 및 기록 텐서 발송
-        if st.session_state.submitted:
-            if choice:
-                selected_num = int(choice[0]) 
-                is_correct = (selected_num == quiz["answer"])
-                
-                # 정답 여부를 판단한 즉시 SQLite 데이터베이스에 영구 기록 텐서 발송!
-                db_manager.log_quiz_result(quiz["topic"], is_correct)
-                
-                if is_correct:
-                    st.success("🎉 정답입니다!")
+                if choice:
+                    st.session_state.submitted = True
+                    
+                    
+                    selected_num = int(choice[0]) 
+                    is_correct = (selected_num == quiz["answer"])
+                    db_manager.log_quiz_result(quiz["topic"], is_correct)
+                    
+                    st.rerun() # 제출 즉시 화면을 새로고침하여 아래의 채점 결과를 띄움
                 else:
-                    st.error(f"❌ 오답입니다! (정답: {quiz['answer']}번)")
-                
-                st.info(f"💡 [AI 해설]: {quiz['explanation']}")
+                    st.warning("보기를 선택한 후 제출해 주세요!")
+
+        # 2. 채점 결과 및 다음 문제 버튼 (제출 완료 시에만 렌더링)
+        if st.session_state.submitted:
+            selected_num = int(choice[0]) 
+            is_correct = (selected_num == quiz["answer"])
+            
+            st.write("---") # 시각적 분리선
+            
+            if is_correct:
+                st.success("🎉 정답입니다!")
             else:
-                st.warning("보기를 선택한 후 제출해 주세요!")
+                st.error(f"❌ 오답입니다! (정답: {quiz['answer']}번)")
+            
+            st.info(f"💡 [AI 해설]: {quiz['explanation']}")
+            
+            # 해설을 다 읽은 후 누를 수 있도록 맨 아래에 '다음 문제' 버튼 배치
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col2: # 버튼을 가운데 정렬하여 시각적 안정감 부여
+                if st.button("🔄 다음 문제", use_container_width=True):
+                    del st.session_state.current_quiz
+                    st.session_state.submitted = False # 다음 문제를 위해 제출 상태 초기화
+                    st.rerun()
