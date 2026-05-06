@@ -129,9 +129,9 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
     if "current_quiz" not in st.session_state:
         if st.session_state.mode == "quiz_random":
             with st.spinner("지식 공간에서 무작위 기출문제를 생성 중..."):
-                #st.session_state.current_quiz = tutor_engine.generate_advanced_quiz()
+                st.session_state.current_quiz = tutor_engine.generate_advanced_quiz()
                 #특정 과목 테스트용
-                st.session_state.current_quiz = tutor_engine.generate_advanced_quiz(target_topic="데이터 입출력 구현")
+                #st.session_state.current_quiz = tutor_engine.generate_advanced_quiz(target_topic="데이터 입출력 구현")
         else:
             weak_topic = db_manager.get_weakest_topic()
             with st.spinner(f"분석된 취약점 [{weak_topic}] 기반의 타겟 문제를 생성 중..."):
