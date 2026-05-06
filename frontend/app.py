@@ -2,6 +2,7 @@ import sys
 import os
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
+import re
 
 # 백엔드 경로 주입 및 모듈 로드
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +33,12 @@ if "memory" not in st.session_state:
 if "mode" not in st.session_state:
     st.session_state.mode = "study" # 기본 모드: 학습(대화)
 
+# 초기화 함수
+def reset_quiz_state():
+    if "current_quiz" in st.session_state:
+        del st.session_state.current_quiz
+    st.session_state.submitted = False
+
 # --- 5. 좌측 사이드바 제어반 ---
 with st.sidebar:
     st.title("일타 강사 튜터 시스템")
@@ -44,13 +51,11 @@ with st.sidebar:
     
     if st.button(" 일반 기출문제 풀기", use_container_width=True):
         st.session_state.mode = "quiz_random"
-        if "current_quiz" in st.session_state:
-            del st.session_state.current_quiz
+        reset_quiz_state()
             
     if st.button(" 취약점 집중 공략 문제 풀기" , type="primary", use_container_width=True):
         st.session_state.mode = "quiz_weakness"
-        if "current_quiz" in st.session_state:
-            del st.session_state.current_quiz
+        reset_quiz_state()
     
     st.write("---")
     # 1. 학습 진도 초기화 진행 버튼
@@ -124,7 +129,9 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
     if "current_quiz" not in st.session_state:
         if st.session_state.mode == "quiz_random":
             with st.spinner("지식 공간에서 무작위 기출문제를 생성 중..."):
-                st.session_state.current_quiz = tutor_engine.generate_advanced_quiz()
+                #st.session_state.current_quiz = tutor_engine.generate_advanced_quiz()
+                #특정 과목 테스트용
+                st.session_state.current_quiz = tutor_engine.generate_advanced_quiz(target_topic="데이터 입출력 구현")
         else:
             weak_topic = db_manager.get_weakest_topic()
             with st.spinner(f"분석된 취약점 [{weak_topic}] 기반의 타겟 문제를 생성 중..."):
@@ -136,20 +143,29 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
 
     # 문제 화면 렌더링
     with st.container(border=True):
-        st.subheader(f"Q. {quiz['question']}")
+        st.markdown(f"### Q. {quiz.get('question', '문제 불러오기 실패')}")
         st.caption(f"🏷️ 출제 파트: {quiz.get('topic', '정보처리기사 개념')}")
+
+        if quiz.get("code_block"):
+            st.code(quiz["code_block"])
+
+        if quiz.get("table_data"):
+            st.markdown(quiz.get("table_data"))
         
-        choice = st.radio("정답을 선택하세요", quiz["choices"], index=None, key="quiz_radio")
+        options = quiz.get("options", ["보기 오류"])
+
+        choice = st.radio("정답을 선택하세요", options, index=None, key="quiz_radio", disabled=st.session_state.submitted)
         
         if not st.session_state.submitted:
             if st.button("정답 제출", type="primary"):
                 if choice:
                     st.session_state.submitted = True
                     
-                    
-                    selected_num = int(choice[0]) 
-                    is_correct = (selected_num == quiz["answer"])
-                    db_manager.log_quiz_result(quiz["topic"], is_correct)
+                    match = re.search(r'\d+', choice)
+                    selected_num = int(match.group()) if match else -1 
+
+                    is_correct = (selected_num == quiz.get("answer"))
+                    db_manager.log_quiz_result(quiz.get("topic"), is_correct)
                     
                     st.rerun() # 제출 즉시 화면을 새로고침하여 아래의 채점 결과를 띄움
                 else:
@@ -157,22 +173,23 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
 
         # 2. 채점 결과 및 다음 문제 버튼 (제출 완료 시에만 렌더링)
         if st.session_state.submitted:
-            selected_num = int(choice[0]) 
-            is_correct = (selected_num == quiz["answer"])
+
+            match = re.search(r'\d+', choice)
+            selected_num = int(match.group()) if match else -1
+            is_correct = (selected_num == quiz.get("answer"))
             
             st.write("---") # 시각적 분리선
             
             if is_correct:
                 st.success("🎉 정답입니다!")
             else:
-                st.error(f"❌ 오답입니다! (정답: {quiz['answer']}번)")
+                st.error(f"❌ 오답입니다! (정답: {quiz.get('answer', '알 수 없음')}번)")
             
-            st.info(f"💡 [AI 해설]: {quiz['explanation']}")
+            st.info(f"💡 [AI 해설]: {quiz.get('explanation', '해설을 불러오지 못했습니다.')}")
             
             # 해설을 다 읽은 후 누를 수 있도록 맨 아래에 '다음 문제' 버튼 배치
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2: # 버튼을 가운데 정렬하여 시각적 안정감 부여
                 if st.button("🔄 다음 문제", use_container_width=True):
-                    del st.session_state.current_quiz
-                    st.session_state.submitted = False # 다음 문제를 위해 제출 상태 초기화
+                    reset_quiz_state()
                     st.rerun()
