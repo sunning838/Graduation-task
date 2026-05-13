@@ -127,15 +127,17 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
 
     # 문제 텐서 생성
     if "current_quiz" not in st.session_state:
-        if st.session_state.mode == "quiz_random":
-            with st.spinner("지식 공간에서 무작위 기출문제를 생성 중..."):
+        with st.status(" AI 에이전트들이 문제를 구성하고 있습니다...", expanded=True) as status:
+            if st.session_state.mode == "quiz_random":
+                st.write("✍️ **출제위원**: 기출 데이터를 분석하여 변형 문제를 출제 중...")
                 st.session_state.current_quiz = tutor_engine.generate_advanced_quiz()
-                #특정 과목 테스트용
-                #st.session_state.current_quiz = tutor_engine.generate_advanced_quiz(target_topic="데이터 입출력 구현")
-        else:
-            weak_topic = db_manager.get_weakest_topic()
-            with st.spinner(f"분석된 취약점 [{weak_topic}] 기반의 타겟 문제를 생성 중..."):
+            else:
+                weak_topic = db_manager.get_weakest_topic()
+                st.write(f"✍️ **출제위원**: 취약점 [{weak_topic}] 타겟 문제를 생성 중...")
                 st.session_state.current_quiz = tutor_engine.generate_advanced_quiz(target_topic=weak_topic)
+            
+            # 모든 처리가 끝나면 상태를 완료로 변경
+            status.update(label="문제 제출 완료.", state="complete", expanded=False)
         
         st.session_state.submitted = False
 
