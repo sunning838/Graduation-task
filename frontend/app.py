@@ -3,6 +3,8 @@ import os
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
 import re
+import pandas as pd
+import plotly.express as px
 
 # 백엔드 경로 주입 및 모듈 로드
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,18 +27,21 @@ def load_engine():
 
 tutor_engine = load_engine()
 
-# 🚀 [추가] 자격증 매핑 딕셔너리
+# 자격증 매핑 딕셔너리
 CERT_MAP = {
     "정보처리기사": "EIP",
     "공인중개사 1차": "LREA_1"
 }
 
 TOPIC_KOR_MAP = {
+    #정보처리기사
     "software_design": "소프트웨어 설계",
     "software_development": "소프트웨어 개발",
     "database": "데이터베이스 구축",
     "programming_language": "프로그래밍 언어 활용",
     "info_system": "정보시스템 구축 관리",
+
+    #공인중개사
     "civil_law": "민법 및 민사특별법",
     "housing_lease": "주택임대차보호법",
     "commercial_lease": "상가건물 임대차보호법",
@@ -90,6 +95,10 @@ with st.sidebar:
     if st.button("🎯 취약점 집중 공략 문제 풀기" , type="primary", use_container_width=True):
         st.session_state.mode = "quiz_weakness"
         reset_quiz_state()
+
+    if st.button("📝 나만의 오답노트 생성 (PDF/MD)", type="secondary", use_container_width=True):
+        st.session_state.mode = "final_note"
+        reset_quiz_state()
     
     st.write("---")
     if st.button("🗑️ 학습 진도 초기화", type="secondary"):
@@ -102,6 +111,10 @@ with st.sidebar:
             if st.button("✅ 확인", type="primary"):
                 db_manager.reset_quiz_logs()
                 reset_quiz_state()
+                
+                if "final_note_content" in st.session_state:
+                    del st.session_state["final_note_content"]
+                    
                 st.session_state.show_confirm = False
                 st.rerun()
         with col2:
@@ -110,6 +123,38 @@ with st.sidebar:
                 st.rerun()
 
 # --- 6. 메인 콘텐츠 영역 ---
+
+with st.expander("나의 학습 취약점 분석", expanded=False):
+    stats = db_manager.get_subject_stats(selected_cert)
+    
+    if stats:
+        # 데이터프레임으로 변환 (영문 topic을 한글로 번역)
+        df_stats = pd.DataFrame({
+            '과목': [TOPIC_KOR_MAP.get(k, k) for k in stats.keys()],
+            '정답률(%)': list(stats.values())
+        })
+        
+        # Plotly 레이더 차트 생성
+        fig = px.line_polar(
+            df_stats, 
+            r='정답률(%)', 
+            theta='과목', 
+            line_close=True, 
+            range_r=[0, 100],
+            markers=True
+        )
+        fig.update_traces(fill='toself', fillcolor='rgba(0, 150, 255, 0.3)', line_color='rgba(0, 150, 255, 1)')
+        fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), margin=dict(l=40, r=40, t=20, b=20))
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 간단한 분석 코멘트
+        weakest = min(stats, key=stats.get)
+        st.caption(f"💡 **분석 결과**: 현재 **[{TOPIC_KOR_MAP.get(weakest, weakest)}]** 과목이 가장 취약합니다. 집중 공부가 필요합니다.")
+    else:
+        st.info("아직 푼 문제가 없습니다. 모의고사를 풀면 여기에 분석 레이더가 나타납니다!")
+
+st.write("---") # 구분선
 
 if st.session_state.mode == "study":
     st.header(f"🤖 {selected_cert_label} AI 튜터와 대화")
@@ -186,6 +231,11 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
 
                     is_correct = (selected_num == quiz.get("answer"))
                     db_manager.log_quiz_result(selected_cert, quiz.get("topic"), is_correct)
+
+                    #문제풀이 db가 업데이트되면 오답노트 갱신
+                    if "final_note_content" in st.session_state:
+                        del st.session_state["final_note_content"]
+
                     st.rerun() 
                 else:
                     st.warning("보기를 선택한 후 제출해 주세요!")
@@ -208,3 +258,35 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
                 if st.button("🔄 다음 문제", use_container_width=True):
                     reset_quiz_state()
                     st.rerun()
+
+elif st.session_state.mode == "final_note":
+    st.header(f"📖 {selected_cert_label} 파이널 요약 오답노트")
+    
+    with st.spinner("학생의 오답 패턴을 분석하여 맞춤형 요약본을 생성하고 있습니다... "):
+        top_weak_topics = db_manager.get_top_weakest_topics(selected_cert, n=3)
+        
+        if not top_weak_topics:
+            st.warning("아직 틀린 문제가 없거나 데이터가 부족합니다. 모의고사를 더 풀어주세요")
+        else:
+            display_topics = [TOPIC_KOR_MAP.get(t, t) for t in top_weak_topics]
+            st.info(f"🔍 **집중 분석된 핵심 취약 단원 Top 3**: {', '.join(display_topics)}")
+            
+            if "final_note_content" not in st.session_state or st.session_state.get("final_note_cert") != selected_cert:
+                final_note = tutor_engine.generate_final_note(selected_cert, top_weak_topics)
+                st.session_state.final_note_content = final_note
+                st.session_state.final_note_cert = selected_cert
+            else:
+                final_note = st.session_state.final_note_content
+                
+            # 화면에 렌더링
+            with st.container(border=True):
+                st.markdown(final_note)
+            
+            st.download_button(
+                label="📥 나만의 오답노트 다운로드 (.md)",
+                data=final_note,
+                file_name=f"{selected_cert_label}_파이널_오답노트.md",
+                mime="text/markdown",
+                type="primary"
+            )
+            st.caption("※ 다운로드한 .md 파일은 마크다운 뷰어 혹은 브라우저에서 열어 PDF로 인쇄(Ctrl+P)할 수 있습니다.")

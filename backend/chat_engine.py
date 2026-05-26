@@ -225,3 +225,38 @@ class AITutorEngine:
         
         print("⚠️ [에이전트] 최대 재시도 횟수 초과. 수정된 결과물을 강제 반환합니다.")
         return quiz_data
+    
+    # 오답노트 자동 생성 에이전트
+    def generate_final_note(self, cert: str, topics: list) -> str:
+        if not topics:
+            return "오답 기록이 충분하지 않습니다. 모의고사를 더 풀어주세요!"
+
+        print(f"\n[에이전트] {cert} 취약 단원({topics}) 파이널 요약노트 작성 중...")
+        
+        # 1. DB에서 취약 단원들의 핵심 개념(concept)만 핀셋으로 긁어모으기
+        combined_context = ""
+        for topic in topics:
+            search_filter = {
+                "$and": [
+                    {"doc_type": "concept"},
+                    {"cert": cert}
+                ]
+            }
+            # 단원별로 가장 관련도 높은 지식 3개씩 추출
+            docs = self.vector_db.similarity_search(topic, k=3, filter=search_filter)
+            combined_context += f"\n\n### [{topic}] 파트 핵심 지식 ###\n"
+            combined_context += "\n".join([doc.page_content for doc in docs])
+
+        # 2. 일타 강사 프롬프트 작성
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """너는 자격증 1타 강사다.
+아래 주어지는 지식들은 학생이 가장 많이 틀린 [취약 단원]들의 데이터다.
+내일 시험장에 들고 갈 수 있도록 '파이널 요약 오답노트'를 마크다운(Markdown) 형식으로 작성해라.
+- 각 단원별로 목차를 깔끔하게 나눌 것.
+- 가독성을 위해 글머리 기호(-, *)와 굵은 글씨(**)를 적극 활용할 것.
+- 강사로서의 암기 팁(Tip)이나 시험 주의사항을 덧붙여줄 것."""),
+            ("human", "[학생의 취약 단원 지식]\n{context}\n\n위 지식을 바탕으로 완벽한 파이널 요약 오답노트를 만들어줘.")
+        ])
+        
+        chain = prompt | self.llm | StrOutputParser()
+        return chain.invoke({"context": combined_context})
