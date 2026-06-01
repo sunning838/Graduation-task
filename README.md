@@ -24,3 +24,7 @@
 pip install -r requirements.txt
 
 streamlit run frontend/app.py 명령어로 서버를 실행합니다
+
+-자료 출처 - 
+시나공 기출문제집 정보처리기사 필기(길벗알앤디 지음/ 강윤석, 김용갑, 감우경, 김종일)
+국가법령정보센터

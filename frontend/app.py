@@ -67,11 +67,11 @@ def reset_quiz_state():
 with st.sidebar:
     st.title("일타 강사 튜터 시스템")
     
-    # 🚀 [추가] 자격증 선택 UI (드롭다운)
+    # 자격증 선택 UI (드롭다운)
     selected_cert_label = st.selectbox("🎓 자격증을 선택하세요", list(CERT_MAP.keys()))
     selected_cert = CERT_MAP[selected_cert_label]
 
-    # 🚀 [핵심] 자격증 변경 감지 및 세션(컨텍스트) 완벽 초기화
+    # 자격증 변경 감지 및 세션(컨텍스트) 완벽 초기화
     if "current_cert" not in st.session_state:
         st.session_state.current_cert = selected_cert
 
@@ -96,7 +96,7 @@ with st.sidebar:
         st.session_state.mode = "quiz_weakness"
         reset_quiz_state()
 
-    if st.button("📝 나만의 오답노트 생성 (PDF/MD)", type="secondary", use_container_width=True):
+    if st.button("📝 약점 족집게 개념노트 생성", type="secondary", use_container_width=True):
         st.session_state.mode = "final_note"
         reset_quiz_state()
     
@@ -154,12 +154,12 @@ with st.expander("나의 학습 취약점 분석", expanded=False):
     else:
         st.info("아직 푼 문제가 없습니다. 모의고사를 풀면 여기에 분석 레이더가 나타납니다!")
 
-st.write("---") # 구분선
+#st.write("---") # 구분선
 
 if st.session_state.mode == "study":
-    st.header(f"🤖 {selected_cert_label} AI 튜터와 대화")
+   # st.header(f"🤖 {selected_cert_label} AI 튜터와 대화")
     
-    chat_container = st.container(height=500)
+    chat_container = st.container(height=600)
     with chat_container:
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
@@ -176,7 +176,7 @@ if st.session_state.mode == "study":
                     weak_topic = db_manager.get_weakest_topic(selected_cert)
                     status_tensor = f"현재 학생이 가장 많이 틀린 취약 단원은 [{weak_topic}] 파트입니다."
                     
-                    # 🚀 [수정] 엔진에 현재 자격증 코드(selected_cert)도 함께 넘겨줌!
+                    # 엔진에 현재 자격증 코드(selected_cert)도 함께 넘겨줌
                     answer = tutor_engine.generate_response(user_input, st.session_state.memory, status_tensor, selected_cert)
                     st.markdown(answer)
                     
@@ -194,12 +194,12 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
         with st.status("🔍 AI 에이전트들이 문제를 구성하고 있습니다...", expanded=True) as status:
             if st.session_state.mode == "quiz_random":
                 st.write("✍️ **출제위원**: 기출 데이터를 분석하여 변형 문제를 출제 중...")
-                # 🚀 [수정] 출제 엔진에 자격증 파라미터 전달
+                # 출제 엔진에 자격증 파라미터 전달
                 st.session_state.current_quiz = tutor_engine.generate_advanced_quiz(cert=selected_cert)
             else:
                 weak_topic = db_manager.get_weakest_topic(selected_cert)
                 st.write(f"✍️ **출제위원**: 취약점 [{weak_topic}] 타겟 문제를 생성 중...")
-                # 🚀 [수정] 타겟팅된 단원과 함께 자격증도 전달
+                # 타겟팅된 단원과 함께 자격증 전달
                 st.session_state.current_quiz = tutor_engine.generate_advanced_quiz(target_topic=weak_topic, cert=selected_cert)
             
             status.update(label="문제 제출 완료.", state="complete", expanded=False)
