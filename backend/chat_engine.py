@@ -26,7 +26,7 @@ CERT_TOPICS = {
 class QuizResponse(BaseModel):
     question: str = Field(description="객관식 문제의 질문 내용")
     table_data: Optional[str] = Field(default=None, description="문제에 표 데이터가 있는 경우 반드시 마크다운 표 문법(|---|)으로 여기에 작성 (없으면 null)")
-    code_block: Optional[str] = Field(default=None, description="문제에 포함될 **소스 코드**나 **SQL 쿼리문**을 여기에 작성 (없으면 null)")
+    code_block: Optional[str] = Field(default=None, description="문제에 포함될 **소스    코드**나 **SQL 쿼리문**을 여기에 작성 (없으면 null)")
     options: List[str] = Field(description="4개의 보기 리스트 (예: ['1) 보기1', '2) 보기2', ...])")
     answer: int = Field(description="정답 번호 (1, 2, 3, 4 중 하나 정수형)")
     explanation: str = Field(description="정답 및 오답에 대한 상세한 해설")
@@ -34,6 +34,31 @@ class QuizResponse(BaseModel):
 class QuizVerification(BaseModel):
     is_valid: bool = Field(description="문제에 오류가 없고 출처에 기반한 완벽한 문제인지 여부 (True/False)")
     feedback: str = Field(description="불합격(False)인 경우 그 이유와 수정 방향, 합격(True)이면 '완벽함'이라고 작성")
+
+class EssayGradeResult(BaseModel):
+    score: int = Field(description="0~100 종합 점수")
+    keyword_score: int = Field(description="키워드 점수 (40점 만점)")
+    logic_score: int = Field(description="논리 흐름 점수 (30점 만점)")
+    accuracy_score: int = Field(description="오개념 없음 점수 (30점 만점)")
+    found_keywords: List[str] = Field(description="학생이 언급한 핵심 키워드 리스트")
+    missing_keywords: List[str] = Field(description="누락된 핵심 키워드 리스트")
+    misconceptions: List[str] = Field(description="발견된 오개념 (없으면 빈 리스트)")
+    feedback: str = Field(description="AI 피드백 2~3문장")
+    model_answer_hint: str = Field(description="모범 답안 힌트 (정답 직접 노출 금지)")
+
+class SocraticTurnResult(BaseModel):
+    status: str = Field(description="'continue' 또는 'complete'. 학생이 정답/원리를 깨달으면 complete")
+    question: str = Field(description="다음 유도 질문 (status가 continue일 때만 작성, 정답 직접 언급 금지)")
+    acknowledgment: str = Field(description="학생 답변에서 맞는 부분을 칭찬/인정해주는 멘트")
+    hint_level: int = Field(description="현재 힌트 수준 (0~3)")
+
+class UnderstandingMap(BaseModel):
+    concept: str = Field(description="최종적으로 이해한 핵심 개념")
+    struggle_points: List[str] = Field(description="학생이 처음에 헷갈려했던 부분들")
+    breakthrough_moment: str = Field(description="이해의 전환점이 된 질문이나 순간")
+    confidence_level: str = Field(description="이해도 (상 / 중 / 하)")
+    recommended_next: str = Field(description="다음에 공부하면 좋을 연관 개념")
+
 
 class AITutorEngine:
     def __init__(self):
@@ -43,6 +68,9 @@ class AITutorEngine:
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
         self.quiz_parser = JsonOutputParser(pydantic_object=QuizResponse)
         self.verify_parser = JsonOutputParser(pydantic_object=QuizVerification)
+        self.essay_parser = JsonOutputParser(pydantic_object=EssayGradeResult)
+        self.socratic_parser = JsonOutputParser(pydantic_object=SocraticTurnResult)
+        self.map_parser = JsonOutputParser(pydantic_object=UnderstandingMap)
         print("[시스템] 튜터 엔진 가동 준비 완료!\n")
 
     
@@ -225,6 +253,74 @@ class AITutorEngine:
         
         print("⚠️ [에이전트] 최대 재시도 횟수 초과. 수정된 결과물을 강제 반환합니다.")
         return quiz_data
+    
+    # 서술형 채점 에이전트
+    def grade_essay(self, quiz_question: str, cert: str, student_essay: str) -> dict:
+        print(f"\n[에이전트] 서술형 답안 채점 중...")
+        
+
+        search_filter = {
+            "$and": [
+                {"doc_type": "concept"},
+                {"cert": cert}
+            ]
+        }
+        docs = self.vector_db.similarity_search(query=quiz_question, k=2, filter=search_filter)
+        context = "\n".join([doc.page_content for doc in docs])
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """너는 엄격하지만 친절한 채점관이다.
+아래 [출제되었던 문제]와 [참고 지식]을 기준으로 학생의 [서술형 답안]을 평가해라.
+학생은 [출제되었던 문제]에서 다룬 핵심 개념에 대해 서술한 것이다.
+반드시 아래 기준을 지켜라:
+- 핵심 키워드 포함 (40점)
+- 논리 흐름 (30점)
+- 오개념 여부 (30점, 오개념이 없으면 30점 만점)
+
+{format_instructions}"""),
+            ("human", "[출제되었던 문제]\n{quiz_question}\n\n[참고 지식]\n{context}\n\n[학생 서술형 답안]\n{student_essay}")
+        ])
+        
+        chain = prompt | self.llm | self.essay_parser
+        return chain.invoke({
+            "context": context, 
+            "quiz_question": quiz_question,  #LLM에게 무슨 문제였는지 알려줌
+            "student_essay": student_essay,
+            "format_instructions": self.essay_parser.get_format_instructions()
+        })
+    
+    # 🚀 기능 B-1: 소크라테스 꼬리 질문 에이전트
+    def socratic_dialogue_turn(self, topic: str, cert: str, quiz_question: str, history: str, student_answer: str, hint_level: int) -> dict:
+        context = self.get_relevant_tensor(topic, cert, k=2)
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """너는 학생 스스로 정답을 깨닫게 만드는 소크라테스식 1타 강사다.
+[규칙]
+1. 절대 정답을 직접 말하지 않는다.
+2. 학생 답변의 맞는 부분은 인정하고, 빠지거나 틀린 부분만 꼬리 질문으로 유도한다.
+3. 한 번에 하나의 질문만 간결하게 한다.
+4. 현재 힌트 레벨은 {hint_level}이다. (0~3). 레벨이 높을수록 결정적인 힌트를 제공해라.
+5. 학생이 스스로 객관식 문제의 정답과 원리를 깨달았다고 판단되면 status를 'complete'로 반환해라.
+
+{format_instructions}"""),
+            ("human", "[참고 지식]\n{context}\n\n[틀린 객관식 문제]\n{quiz_question}\n\n[이전 대화 기록]\n{history}\n\n[학생의 최근 답변]\n{student_answer}\n\n위 내용을 바탕으로 다음 행동을 결정해라.")
+        ])
+        chain = prompt | self.llm | self.socratic_parser
+        return chain.invoke({
+            "context": context, "quiz_question": quiz_question, 
+            "history": history, "student_answer": student_answer, 
+            "hint_level": hint_level, "format_instructions": self.socratic_parser.get_format_instructions()
+        })
+
+    # 🚀 기능 B-2: 이해 경로 맵 생성 에이전트
+    def generate_understanding_map(self, history: str) -> dict:
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """너는 학습 분석가다. 아래 소크라테스 문답 기록을 분석하여 학생의 '이해 경로 맵'을 생성해라.
+{format_instructions}"""),
+            ("human", "[소크라테스 문답 기록]\n{history}")
+        ])
+        chain = prompt | self.llm | self.map_parser
+        return chain.invoke({"history": history, "format_instructions": self.map_parser.get_format_instructions()})
+    
     
     # 오답노트 자동 생성 에이전트
     def generate_final_note(self, cert: str, topics: list) -> str:

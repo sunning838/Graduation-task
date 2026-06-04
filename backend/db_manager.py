@@ -15,6 +15,7 @@ def init_db():
             cert TEXT,
             topic TEXT,
             is_correct INTEGER,
+            essay_score INTEGER DEFAULT NULL,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -108,3 +109,19 @@ def get_top_weakest_topics(cert, n=3):
     
     # 예: ['software_design', 'database'] 형태로 반환
     return [row[0] for row in results]
+
+def update_latest_essay_score(cert, topic, score):
+    """방금 푼 문제의 기록을 찾아 서술형 점수를 덮어씌웁니다."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        UPDATE quiz_logs 
+        SET essay_score = ? 
+        WHERE id = (
+            SELECT id FROM quiz_logs 
+            WHERE cert = ? AND topic = ? 
+            ORDER BY timestamp DESC LIMIT 1
+        )
+    ''', (score, cert, topic))
+    conn.commit()
+    conn.close()
