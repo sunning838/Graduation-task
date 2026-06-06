@@ -72,6 +72,13 @@ def reset_quiz_state():
     if "understanding_map" in st.session_state:
         del st.session_state["understanding_map"]
 
+# 모의고사 상태 초기화 함수
+def reset_mock_exam_state():
+    st.session_state.mock_step = "setup" # setup(설정), generating(생성중), taking(응시중), result(결과), review(복기)
+    st.session_state.mock_questions = [] # 출제된 문제 리스트 보관
+    st.session_state.mock_answers = []   # 유저가 선택한 정답 리스트 보관
+    st.session_state.mock_current_q = 0  # 현재 풀고 있는 문제 인덱스
+
 # --- 5. 좌측 사이드바 제어반 ---
 with st.sidebar:
     st.title("일타 강사 튜터 시스템")
@@ -105,9 +112,14 @@ with st.sidebar:
         st.session_state.mode = "quiz_weakness"
         reset_quiz_state()
 
-    if st.button("📝 약점 족집게 개념노트 생성", type="secondary", use_container_width=True):
+    if st.button("📝 약점 족집게 개념노트 생성", type="primary", use_container_width=True):
         st.session_state.mode = "final_note"
         reset_quiz_state()
+    
+    if st.button("🔥 실전 모의고사 풀어보기", use_container_width=True, type="primary"):
+        st.session_state.mode = "mock_exam"
+        reset_mock_exam_state() # 진입 시 상태 초기화
+        st.rerun()
     
     st.write("---")
     if st.button("🗑️ 학습 진도 초기화", type="secondary"):
@@ -165,9 +177,47 @@ with st.expander("나의 학습 취약점 분석", expanded=False):
 
 #st.write("---") # 구분선
 
+st.markdown("""
+<style>
+.equal-card {
+    border: 1px solid #d9d9d9;
+    border-radius: 12px;
+    padding: 20px 24px;
+    min-height: 210px;
+    background-color: white;
+}
+</style>
+""", unsafe_allow_html=True)
+
 if st.session_state.mode == "study":
    # st.header(f"🤖 {selected_cert_label} AI 튜터와 대화")
-    
+
+    # ====================================================================
+    # 실시간 자격증별 미니 통계 대시보드
+    # ====================================================================
+    total, correct, accuracy = db_manager.get_cert_stats(selected_cert)
+
+    DAILY_GOAL = 50
+    today_solved = db_manager.get_today_solved_count(selected_cert)
+    progress_ratio = min(today_solved / DAILY_GOAL, 1.0)
+
+    left_col, right_col = st.columns([0.60, 0.40])
+
+    with left_col:
+        with st.container(border=True):
+            st.markdown("#### 🎯 오늘의 목표 달성률")
+            st.metric("오늘 풀이 수", f"{today_solved} / {DAILY_GOAL}")
+            st.progress(progress_ratio)
+            st.caption(f"현재 목표 달성률: {int(progress_ratio * 100)}%")
+
+    with right_col:
+        with st.container(border=True):
+            st.markdown("### 📊 전체 학습 현황")
+            m1, m2, m3 = st.columns(3)
+            m1.metric("📝 푼 문제", f"{total}개")
+            m2.metric("🎯 맞춘 문제", f"{correct}개")
+            m3.metric("🔥 정답률", f"{accuracy:.1f}%")
+
     chat_container = st.container(height=600)
     with chat_container:
         for msg in st.session_state.messages:
@@ -354,7 +404,7 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
                 st.error(f"❌ 오답입니다! (선택한 답: {selected_num}번)")
                 
                 # -------------------------------------------------------------
-                # 🚀 오답 분기: [해설 보기] vs [소크라테스 문답]
+                #  오답 분기: [해설 보기] vs [소크라테스 문답]
                 # -------------------------------------------------------------
                 if not st.session_state.get("show_explanation") and not st.session_state.get("socratic_active"):
                     col1, col2 = st.columns(2)
@@ -368,7 +418,7 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
                             st.rerun()
 
                 # -------------------------------------------------------------
-                # 🚀 루트 A: 정답/해설 바로 포기하고 보기
+                #  루트 A: 정답/해설 바로 포기하고 보기
                 # -------------------------------------------------------------
                 if st.session_state.get("show_explanation"):
                     st.success(f"정답은 **{quiz.get('answer')}번** 입니다.")
@@ -378,7 +428,7 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
                         st.rerun()
 
                 # -------------------------------------------------------------
-                # 🚀 루트 B: 소크라테스 모드 발동 (채팅 UI)
+                #  루트 B: 소크라테스 모드 발동 (채팅 UI)
                 # -------------------------------------------------------------
                 if st.session_state.get("socratic_active"):
                     st.write("---")
@@ -501,6 +551,187 @@ elif st.session_state.mode == "final_note":
                 type="primary"
             )
             st.caption("※ 다운로드한 .md 파일은 마크다운 뷰어 혹은 브라우저에서 열어 PDF로 인쇄(Ctrl+P)할 수 있습니다.")
+
+elif st.session_state.mode == "mock_exam":
+    st.header(f"⏱️ {selected_cert_label} 실전 모의고사")
+    
+    # 해당 자격증에 맞는 과목 리스트 (자네의 DB 구조에 맞게 수정 필요)
+    # 예시: 정보처리기사일 경우
+    available_topics_kor = ["소프트웨어 설계", "소프트웨어 개발", "데이터베이스 구축", "프로그래밍 언어 활용", "정보시스템 구축 관리"]
+    kor_to_eng_map = {v: k for k, v in TOPIC_KOR_MAP.items()} # 한글 -> 영문 key 변환용
+    
+    # ---------------------------------------------------------
+    # [Step 1] 모의고사 조건 설정
+    # ---------------------------------------------------------
+    if st.session_state.mock_step == "setup":
+        with st.container(border=True):
+            st.subheader("⚙️ 모의고사 설정")
+            selected_topics = st.multiselect("📚 응시할 과목을 선택하세요 (다중 선택 가능)", available_topics_kor, default=available_topics_kor)
+            total_q_count = st.select_slider("📝 총 문제 수를 선택하세요", options=list(range(10, 101, 10)), value=20)
+            
+            if st.button("🚀 모의고사 시작 (문제 생성)", type="primary", use_container_width=True):
+                if not selected_topics:
+                    st.error("최소 1개 이상의 과목을 선택해야 합니다.")
+                else:
+                    # 🚀 [핵심 알고리즘] 과목별 문제 수 균등 분배
+                    num_subjects = len(selected_topics)
+                    base_count = total_q_count // num_subjects
+                    remainder = total_q_count % num_subjects
+                    
+                    distribution = []
+                    for i in range(num_subjects):
+                        count = base_count + 1 if i < remainder else base_count
+                        distribution.append({"topic_kor": selected_topics[i], "topic_eng": kor_to_eng_map[selected_topics[i]], "count": count})
+                    
+                    st.session_state.mock_distribution = distribution
+                    st.session_state.mock_total_q = total_q_count
+                    st.session_state.mock_step = "generating"
+                    st.rerun()
+
+    # ---------------------------------------------------------
+    # [Step 2] 문제 일괄 생성 (Progress Bar)
+    # ---------------------------------------------------------
+    elif st.session_state.mock_step == "generating":
+        st.info("AI 튜터가 지정된 조건에 맞춰 실전 문제를 출제하고 있습니다. 잠시만 기다려주세요...")
+        progress_bar = st.progress(0)
+        
+        if len(st.session_state.mock_questions) == 0: # 아직 생성 안됨
+            generated_questions = []
+            total_to_gen = st.session_state.mock_total_q
+            current_gen = 0
+            
+            for dist in st.session_state.mock_distribution:
+                topic_eng = dist["topic_eng"]
+                topic_kor = dist["topic_kor"]
+                count = dist["count"]
+                
+                for _ in range(count):
+                    # 기존 엔진 재사용 (실제 퀴즈 생성 함수명에 맞게 호출)
+                    # 주의: LLM 호출이 많으므로 시간이 걸림.(보완점)
+                    quiz_data = tutor_engine.generate_quiz(topic_eng, selected_cert)
+                    quiz_data["topic_kor"] = topic_kor # 통계를 위해 과목명 저장
+                    generated_questions.append(quiz_data)
+                    
+                    current_gen += 1
+                    progress_bar.progress(current_gen / total_to_gen)
+            
+            st.session_state.mock_questions = generated_questions
+            st.session_state.mock_step = "taking"
+            st.rerun()
+
+    # ---------------------------------------------------------
+    # [Step 3] 모의고사 응시
+    # ---------------------------------------------------------
+    elif st.session_state.mock_step == "taking":
+        curr_idx = st.session_state.mock_current_q
+        total_q = st.session_state.mock_total_q
+        current_quiz = st.session_state.mock_questions[curr_idx]
+        
+        st.progress((curr_idx) / total_q)
+        st.markdown(f"### 문제 {curr_idx + 1} / {total_q}")
+        st.caption(f"과목: {current_quiz['topic_kor']}")
+        
+        with st.container(border=True):
+            st.write(current_quiz['question'])
+            if current_quiz.get('code_block'):
+                st.code(current_quiz['code_block'])
+                
+            # 라디오 버튼으로 사용자 답 입력 받기 (key를 동적으로 부여)
+            user_choice = st.radio("정답을 선택하세요", current_quiz['options'], key=f"mock_radio_{curr_idx}")
+            
+        col1, col2 = st.columns(2)
+        with col2:
+            if curr_idx < total_q - 1:
+                if st.button("다음 문제 ➡️", use_container_width=True, type="primary"):
+                    # 답 저장 후 인덱스 증가
+                    st.session_state.mock_answers.append(user_choice)
+                    st.session_state.mock_current_q += 1
+                    st.rerun()
+            else:
+                if st.button("✅ 최종 답안 제출 및 채점하기", use_container_width=True, type="primary"):
+                    st.session_state.mock_answers.append(user_choice)
+                    st.session_state.mock_step = "result"
+                    st.rerun()
+
+    # ---------------------------------------------------------
+    # [Step 4] 채점 결과창
+    # ---------------------------------------------------------
+    elif st.session_state.mock_step == "result":
+        st.success("🎉 모의고사가 종료되었습니다. 수고하셨습니다!")
+        
+        # 1. 전체 채점 계산
+        total_q = st.session_state.mock_total_q
+        correct_count = 0
+        subject_stats = {dist["topic_kor"]: {"total": 0, "correct": 0} for dist in st.session_state.mock_distribution}
+        
+        for idx, q in enumerate(st.session_state.mock_questions):
+            subj = q["topic_kor"]
+            is_correct = (st.session_state.mock_answers[idx] == q["answer"])
+            
+            subject_stats[subj]["total"] += 1
+            if is_correct:
+                correct_count += 1
+                subject_stats[subj]["correct"] += 1
+                
+        # 2. 100점 환산 점수
+        final_score = int((correct_count / total_q) * 100)
+        
+        st.markdown(f"<h2 style='text-align: center; color: #FF4B4B;'>총점: {final_score}점 / 100점</h2>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center;'>({total_q}문제 중 {correct_count}문제 정답)</p>", unsafe_allow_html=True)
+        st.write("---")
+        
+        # 3. 과목별 상세 성적
+        st.subheader("📊 과목별 성적표")
+        cols = st.columns(len(subject_stats))
+        for i, (subj, stats) in enumerate(subject_stats.items()):
+            with cols[i]:
+                st.metric(subj, f"{stats['correct']} / {stats['total']}")
+        
+        st.write("---")
+        if st.button("🔍 푼 문제 복기하기 (오답 확인)", use_container_width=True, type="primary"):
+            st.session_state.mock_step = "review"
+            st.rerun()
+
+    # ---------------------------------------------------------
+    # [Step 5] 푼 문제 복기 기능
+    # ---------------------------------------------------------
+    elif st.session_state.mock_step == "review":
+        st.subheader("🔍 모의고사 복기")
+        
+        # 필터링 기능
+        filter_opt = st.radio("문제 필터", ["전체 보기", "맞춘 문제만", "틀린 문제만"], horizontal=True)
+        
+        for idx, q in enumerate(st.session_state.mock_questions):
+            user_ans = st.session_state.mock_answers[idx]
+            real_ans = q["answer"]
+            is_correct = (user_ans == real_ans)
+            
+            # 필터 적용
+            if filter_opt == "맞춘 문제만" and not is_correct: continue
+            if filter_opt == "틀린 문제만" and is_correct: continue
+            
+            icon = "✅" if is_correct else "❌"
+            expander_title = f"{icon} 문제 {idx + 1} [{q['topic_kor']}]"
+            
+            with st.expander(expander_title, expanded=not is_correct): # 틀린 문제는 기본으로 열어둠
+                st.markdown(f"**Q. {q['question']}**")
+                if q.get('code_block'):
+                    st.code(q['code_block'])
+                
+                st.write("**[선택지]**")
+                for opt in q['options']:
+                    st.write(f"- {opt}")
+                    
+                st.markdown("---")
+                colA, colB = st.columns(2)
+                colA.info(f"🙋‍♂️ 내가 선택한 답:\n**{user_ans}**")
+                colB.success(f"🎯 실제 정답:\n**{real_ans}**")
+                
+                st.markdown(f"💬 **AI 해설:**\n{q.get('explanation', '해설이 없습니다.')}")
+                
+        if st.button("돌아가기 (모의고사 종료)"):
+            st.session_state.mode = "study" # 기본 학습 모드로 복귀
+            st.rerun()
 
 
 st.markdown(

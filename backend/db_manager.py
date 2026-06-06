@@ -125,3 +125,49 @@ def update_latest_essay_score(cert, topic, score):
     ''', (score, cert, topic))
     conn.commit()
     conn.close()
+
+def get_cert_stats(cert):
+    """특정 자격증(cert)의 총 푼 문제 수, 맞춘 문제 수, 정답률을 실시간 반환합니다."""
+    import sqlite3
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    try:
+        # 1. 해당 자격증으로 푼 전체 문제 수 카운트
+        c.execute("SELECT COUNT(*) FROM quiz_logs WHERE cert = ?", (cert,))
+        total_solved = c.fetchone()[0]
+        
+        # 2. 해당 자격증으로 맞춘 문제 수 카운트 (is_correct = 1)
+        c.execute("SELECT COUNT(*) FROM quiz_logs WHERE cert = ? AND is_correct = 1", (cert,))
+        correct_solved = c.fetchone()[0]
+    except sqlite3.OperationalError:
+        # 혹시라도 첫 실행 시 테이블이 없거나 꼬였을 때 에러 방지 방어 코드
+        total_solved, correct_solved = 0, 0
+        
+    conn.close()
+    
+    # 3. 정답률 계산 (0으로 나누기 에러 방지)
+    accuracy = (correct_solved / total_solved * 100) if total_solved > 0 else 0.0
+    
+    return total_solved, correct_solved, accuracy
+
+def get_today_solved_count(cert):
+    """특정 자격증(cert)에 대해 오늘 하루 동안 푼 문제 수를 반환합니다."""
+    import sqlite3
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    try:
+        # SQLite의 내장 날짜 함수를 사용하여 오늘 날짜(localtime 기준)의 데이터만 카운트합니다.
+        c.execute('''
+            SELECT COUNT(*) 
+            FROM quiz_logs 
+            WHERE cert = ? AND date(timestamp, 'localtime') = date('now', 'localtime')
+        ''', (cert,))
+        today_count = c.fetchone()[0]
+    except sqlite3.OperationalError:
+        # 테이블이 꼬였거나 없을 때를 대비한 방어 코드
+        today_count = 0
+        
+    conn.close()
+    return today_count
