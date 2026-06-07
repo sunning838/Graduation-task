@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import random
 from dotenv import load_dotenv
@@ -11,17 +12,13 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.messages import HumanMessage, AIMessage
+from backend.cert_config import CERT_TOPICS
 
 load_dotenv()
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_DIR = os.path.join(CURRENT_DIR, "chroma_db")
 
-# 자격증별 하위 도메인(폴더명) 매핑 딕셔너리
-CERT_TOPICS = {
-    "EIP": ["software_design", "software_development", "database", "programming_language", "info_system"],
-    "LREA_1": ["civil_law", "housing_lease", "commercial_lease", "aggregate_building", "provisional_registration", "real_name_registration"]
-}
 
 class QuizResponse(BaseModel):
     question: str = Field(description="객관식 문제의 질문 내용")
@@ -89,58 +86,164 @@ class AITutorEngine:
         chain = prompt | self.llm | StrOutputParser()
         return chain.invoke({"context": context, "chat_history": chat_history, "student_status": student_status, "question": query})
     
+    def _build_avoid_prompt(self, generated_history: list = None) -> str:
+        if not generated_history:
+             return ""
+
+        past_questions = [
+            q.get("question", "").strip()
+            for q in generated_history
+            if isinstance(q, dict) and q.get("question")
+        ]
+
+        if not past_questions:
+            return ""
+
+        avoid_prompt = """
+        [중복 방지 규칙]
+        - 아래 문제들과 동일한 문장, 동일한 보기 구성, 동일한 정답 패턴을 반복하지 마라.
+        - 같은 단원이라도 새로운 상황, 새로운 보기, 새로운 표현으로 변형하라.
+        - 기존 문제와 지나치게 유사한 문제는 출제하지 마라.
+
+        [기존 출제 문제 목록]
+        """
+        avoid_prompt += "\n".join([f"- {pq}" for pq in past_questions])
+        return avoid_prompt
+
+
+    def _fallback_quiz(self, selected_topic: str, reason: str = "문제 생성 실패") -> dict:
+        return {
+            "question": f"({selected_topic}) 다음 중 해당 개념에 대한 설명으로 가장 적절한 것은? ({reason})",
+            "table_data": None,
+            "code_block": None,
+            "options": [
+                "1) 핵심 개념을 올바르게 설명한 보기이다.",
+                "2) 핵심 개념과 관련 없는 설명이다.",
+                "3) 일부만 맞고 전체적으로는 틀린 설명이다.",
+                "4) 시험에서 일반적으로 옳지 않은 설명이다."
+            ],
+            "answer": 1,
+            "explanation": "문제 생성 과정에서 오류가 발생하여 임시 문항이 반환되었습니다. 실제 시험 대비용으로는 다시 생성하는 것을 권장합니다.",
+            "topic": selected_topic
+        }
     
-    def generate_quiz(self, target_topic: str = None, cert: str = "EIP") -> dict:
+    def _normalize_quiz_data(self, quiz_data: dict, selected_topic: str) -> dict:
+        if not quiz_data:
+            return self._fallback_quiz(selected_topic, "빈 문제 데이터")
+
+        options = quiz_data.get("options", [])
+        answer = quiz_data.get("answer", 1)
+
+        # options 형식 검사
+        if not isinstance(options, list):
+            return self._fallback_quiz(selected_topic, "options 형식 오류")
+
+        cleaned_options = []
+        for opt in options:
+            if opt is None:
+                continue
+            text = str(opt).strip()
+            if not text:
+                continue
+
+            # 앞에 붙은 번호 제거: "1) 보기", "2. 보기", "3 - 보기" 등
+            text = re.sub(r'^\s*\d+\s*[).\-:]?\s*', '', text)
+            cleaned_options.append(text)
+
+        # 보기 4개 초과 시 앞의 4개만 사용
+        cleaned_options = cleaned_options[:4]
+
+        # 보기 수가 4개 아니면 fallback
+        if len(cleaned_options) != 4:
+            return self._fallback_quiz(selected_topic, "보기 개수 오류")
+
+        # 번호를 강제로 다시 붙임
+        normalized_options = [
+            f"{i+1}) {text}" for i, text in enumerate(cleaned_options)
+        ]
+
+        # 정답 번호 보정
+        try:
+            answer = int(answer)
+        except Exception:
+            return self._fallback_quiz(selected_topic, "정답 형식 오류")
+
+        if answer < 1 or answer > 4:
+            return self._fallback_quiz(selected_topic, "정답 번호 범위 오류")
+
+        quiz_data["options"] = normalized_options
+        quiz_data["answer"] = answer
+        quiz_data["topic"] = selected_topic
+        return quiz_data
+
+    
+    
+    def generate_quiz(self, target_topic: str = None, cert: str = "EIP", generated_history: list = None) -> dict:
         topics = CERT_TOPICS.get(cert, ["일반 개념"])
         selected_topic = target_topic if target_topic else random.choice(topics)
-        
-        # 특정 자격증(cert)이면서, 개념 데이터(doc_type=concept)인 것만 추출
+
         search_filter = {
             "$and": [
                 {"doc_type": "concept"},
                 {"cert": cert}
             ]
         }
-        docs = self.vector_db.similarity_search(selected_topic, k=3, filter=search_filter)
-        context = "\n\n".join([doc.page_content for doc in docs])
+
+        docs = self.vector_db.similarity_search(selected_topic, k=10, filter=search_filter)
+        if not docs:
+            print(f"⚠️ [경고] {cert} / {selected_topic} 관련 concept 문서를 찾지 못했습니다.")
+            return self._fallback_quiz(selected_topic, "참고 지식 없음")
+
+        sampled_docs = random.sample(docs, min(3, len(docs)))
+        context = "\n\n".join([doc.page_content for doc in sampled_docs])
+
+        avoid_prompt = self._build_avoid_prompt(generated_history)
 
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """너는 국가공인 자격증 시험을 출제하는 전담 교수다. 
-주어진 [참고 지식]을 바탕으로 학생이 풀 수 있는 객관식 문제 1개를 출제해라.
+            ("system", """너는 국가공인 자격증 시험을 출제하는 전담 교수다.
+                        주어진 [참고 지식]을 바탕으로 학생이 풀 수 있는 객관식 문제 1개를 출제해라.
+
+                        {avoid_prompt}
+
+                        [출제 규칙]
+                        1. 반드시 보기 4개를 작성해라.
+                        2. 정답은 1~4 중 하나의 정수로 작성해라.
+                        3. 해설은 왜 정답이고 왜 오답인지 분명하게 작성해라.
+                        4. 표가 필요하면 table_data에 넣고, 없으면 null로 둬라.
+                        5. 코드나 SQL이 필요하면 code_block에 넣고, 없으면 null로 둬라.
+
 {format_instructions}
 
 [참고 지식]
 {context}"""),
-            ("human", f"위 지식을 바탕으로 '{selected_topic}' 파트에서 자격증 시험에 나올법한 객관식 문제를 하나 출제해줘.")
+            ("human", "위 지식을 바탕으로 '{selected_topic}' 파트에서 자격증 시험에 나올 법한 객관식 문제를 하나 출제해줘.")
         ])
 
         chain = prompt | self.llm | self.quiz_parser
-        
+
         try:
             quiz_data = chain.invoke({
                 "context": context,
+                "selected_topic": selected_topic,
+                "avoid_prompt": avoid_prompt,
                 "format_instructions": self.quiz_parser.get_format_instructions()
             })
-            quiz_data["topic"] = selected_topic 
+            quiz_data = self._normalize_quiz_data(quiz_data, selected_topic)
             return quiz_data
+
         except Exception as e:
-            print(f"[오류] 파싱 실패: {e}")
-            return {
-                "question": f"({selected_topic}) 데이터베이스 설계 순서로 올바른 것은? (파싱 오류 임시 문제)",
-                "code_block": None,
-                "options": ["1) 개념-논리-물리", "2) 물리-논리-개념", "3) 논리-개념-물리", "4) 개념-물리-논리"],
-                "answer": 1,
-                "explanation": "요구사항 분석 후 개념적, 논리적, 물리적 설계 순으로 진행됩니다.",
-                "topic": selected_topic
-            }
+            print(f"[오류] generate_quiz 파싱 실패: {e}")
+            return self._fallback_quiz(selected_topic, "파싱 오류")
         
     def verify_quiz(self, quiz_data: dict, context: str) -> dict:
         prompt = ChatPromptTemplate.from_messages([
             ("system", """너는 깐깐한 문제 검수위원이다. 
             아래 [참고 지식]과 [출제된 문제]를 꼼꼼히 비교하여 다음 3가지를 검증해라:
             1. 정답이 확실히 맞으며, 해설이 논리적인가?
-            2. 4개의 보기 중에 중복된 내용이 없는가?
-            3. 문제가 [참고 지식]에 기반하고 있으며, 없는 내용을 지어내지(환각) 않았는가?
+            2. 보기 개수가 정확히 4개인가?
+            3. 정답 번호가 1~4 범위 안에 있는가?
+            4. 4개의 보기 중에 중복된 내용이 없는가?
+            5. 문제가 [참고 지식]에 기반하고 있으며, 없는 내용을 지어내지(환각) 않았는가?
 
 {format_instructions}"""),
             ("human", "[참고 지식]\n{context}\n\n[출제된 문제]\n{quiz}")
@@ -154,6 +257,8 @@ class AITutorEngine:
         })
     
     def revise_quiz(self, original_quiz: dict, feedback: str, context: str) -> dict:
+        if not original_quiz:
+            raise ValueError("revise_quiz에 original_quiz가 없습니다.")
         prompt = ChatPromptTemplate.from_messages([
             ("system", """너는 전문 출제위원이다.
 네가 출제한 문제에 대해 검수위원이 오류를 발견하고 피드백을 주었다.
@@ -174,17 +279,20 @@ class AITutorEngine:
         ])
         
         chain = prompt | self.llm | self.quiz_parser
-        return chain.invoke({
+        quiz_data = chain.invoke({
             "context": context,
             "original_quiz": json.dumps(original_quiz, ensure_ascii=False),
             "feedback": feedback,
             "format_instructions": self.quiz_parser.get_format_instructions()
         })
-    
+
+        selected_topic = original_quiz.get("topic", "일반 개념")
+        quiz_data = self._normalize_quiz_data(quiz_data, selected_topic)
+        return quiz_data
     
 
     
-    def generate_advanced_quiz(self, target_topic: str = None, cert: str = "EIP") -> dict:
+    def generate_advanced_quiz(self, target_topic: str = None, cert: str = "EIP",  generated_history: list = None) -> dict:
         topics = CERT_TOPICS.get(cert, ["일반 개념"])
         selected_topic = target_topic if target_topic else random.choice(topics)
         
@@ -196,29 +304,41 @@ class AITutorEngine:
         }
         
         quiz_docs = self.vector_db.similarity_search(query=selected_topic, k=5, filter=search_filter)
+
         if not quiz_docs: 
-            return self.generate_quiz(selected_topic, cert)
+            return self.generate_quiz(
+                target_topic=selected_topic,
+                cert=cert,
+                generated_history=generated_history
+            )
+    
             
         context = "\n\n".join([doc.page_content for doc in quiz_docs])
 
-        # 최초 출제용 프롬프트 (feedback_history 제거)
+        # 이미 출제한 문제들과 너무 비슷한 문제를 피하도록 지시문 생성
+        avoid_prompt = self._build_avoid_prompt(generated_history)
+
+        # 최초 출제용 프롬프트
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """너는 전문 출제위원이다. 
+        ("system", """너는 전문 출제위원이다. 
 아래의 [실제 기출 데이터]를 분석하여 신규 변형 객관식 문제를 1개 출제해라.
+
+{avoid_prompt}
+
 [변형 규칙]
 1. 핵심 개념 유지하되, 정답 보기나 상황을 새롭게 만들어라.
 2. 매력적인 오답 보기를 포함해라.
 3. 해설에는 "왜 정답이고, 왜 오답인지" 상세히 적어라.
 4. 문제에 표(Table)나 릴레이션 데이터가 포함되어 있다면, 절대 누락하지 말고 반드시 JSON의 "table_data" 필드에 마크다운 표 형식으로 작성해라. (HTML 금지)
-5. **문제에 소스 코드(C, Java, Python 등)나 SQL 쿼리문이 포함된다면, 절대 누락하지 말고 반드시 JSON의 "code_block" 필드에 작성해라.**
+5. 문제에 소스 코드(C, Java, Python 등)나 SQL 쿼리문이 포함된다면, 절대 누락하지 말고 반드시 JSON의 "code_block" 필드에 작성해라.
 
 {format_instructions}"""),
-            ("human", "[실제 기출 데이터]\n{context}\n\n위 기출 데이터를 바탕으로 '{selected_topic}' 단원의 실전 변형 문제를 만들어줘.")
-        ])
+        ("human", "[실제 기출 데이터]\n{context}\n\n위 기출 데이터를 바탕으로 '{selected_topic}' 단원의 실전 변형 문제를 만들어줘.")
+    ])
 
         chain = prompt | self.llm | self.quiz_parser
         
-        max_retries = 3
+        max_retries = 5
         feedback_history = ""
         quiz_data = None 
         
@@ -229,6 +349,7 @@ class AITutorEngine:
                     quiz_data = chain.invoke({
                         "context": context,
                         "selected_topic": selected_topic,
+                        "avoid_prompt": avoid_prompt,
                         "format_instructions": self.quiz_parser.get_format_instructions()
                     })
                 else:
@@ -236,7 +357,7 @@ class AITutorEngine:
                     print("[에이전트] 피드백을 반영하여 기존 문제를 수정 중입니다...")
                     quiz_data = self.revise_quiz(quiz_data, feedback_history, context)
                 
-                quiz_data["topic"] = selected_topic 
+                quiz_data = self._normalize_quiz_data(quiz_data, selected_topic)
                 
                 print("[에이전트] 문제를 검토 중입니다...")
                 verification = self.verify_quiz(quiz_data, context)
@@ -251,7 +372,8 @@ class AITutorEngine:
             except Exception as e:
                 print(f"🚨 [오류] 출제/수정/검수 중 파싱 실패: {e}")
         
-        print("⚠️ [에이전트] 최대 재시도 횟수 초과. 수정된 결과물을 강제 반환합니다.")
+        if quiz_data is None:
+            return self._fallback_quiz(selected_topic, "최대 재시도 초과")
         return quiz_data
     
     # 서술형 채점 에이전트

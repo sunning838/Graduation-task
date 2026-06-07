@@ -13,6 +13,7 @@ sys.path.append(PROJECT_ROOT)
 
 from backend.chat_engine import AITutorEngine
 from backend import db_manager
+from backend.cert_config import CERT_CONFIG, CERT_MAP, TOPIC_KOR_MAP
 
 # 1. 페이지 레이아웃 설정
 st.set_page_config(page_title="AI 자격증 일타 강사", layout="wide")
@@ -26,30 +27,6 @@ def load_engine():
     return AITutorEngine()
 
 tutor_engine = load_engine()
-
-# 자격증 매핑 딕셔너리
-CERT_MAP = {
-    "정보처리기사": "EIP",
-    "공인중개사 1차": "LREA_1"
-}
-
-TOPIC_KOR_MAP = {
-    #정보처리기사
-    "software_design": "소프트웨어 설계",
-    "software_development": "소프트웨어 개발",
-    "database": "데이터베이스 구축",
-    "programming_language": "프로그래밍 언어 활용",
-    "info_system": "정보시스템 구축 관리",
-
-    #공인중개사
-    "civil_law": "민법 및 민사특별법",
-    "housing_lease": "주택임대차보호법",
-    "commercial_lease": "상가건물 임대차보호법",
-    "aggregate_building": "집합건물법",
-    "provisional_registration": "가등기담보법",
-    "real_name_registration": "부동산실명법"
-}
-
 # 4. 세션 상태 초기화
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -57,6 +34,8 @@ if "memory" not in st.session_state:
     st.session_state.memory = []
 if "mode" not in st.session_state:
     st.session_state.mode = "study"
+if "mock_logged" not in st.session_state:
+    st.session_state.mock_logged = False
 
 def reset_quiz_state():
     if "current_quiz" in st.session_state:
@@ -72,12 +51,44 @@ def reset_quiz_state():
     if "understanding_map" in st.session_state:
         del st.session_state["understanding_map"]
 
+def get_selected_option_number(selected_option: str, options: list[str]) -> int:
+    """
+    사용자가 선택한 보기 문자열을 1-based 번호로 변환
+    예: options[0] 선택 -> 1
+    """
+    if not selected_option:
+        return -1
+
+    try:
+        return options.index(selected_option) + 1
+    except ValueError:
+        return -1
+
 # 모의고사 상태 초기화 함수
 def reset_mock_exam_state():
     st.session_state.mock_step = "setup" # setup(설정), generating(생성중), taking(응시중), result(결과), review(복기)
     st.session_state.mock_questions = [] # 출제된 문제 리스트 보관
     st.session_state.mock_answers = []   # 유저가 선택한 정답 리스트 보관
     st.session_state.mock_current_q = 0  # 현재 풀고 있는 문제 인덱스
+    st.session_state.mock_logged = False # 결과 DB 저장 여부
+
+# 모의고사 문제 중복 판정용 함수
+def normalize_quiz_signature(quiz: dict) -> str:
+
+    # 문제 본문
+    question = (quiz.get("question") or "").strip()
+
+    # 보기 목록을 하나의 문자열로 합침
+    options = " | ".join((opt or "").strip() for opt in quiz.get("options", []))
+
+    # 코드가 있는 문제라면 코드 내용도 비교 대상에 포함
+    code_block = (quiz.get("code_block") or "").strip()
+
+    # 표가 있는 문제라면 표 내용도 비교 대상에 포함
+    table_data = (quiz.get("table_data") or "").strip()
+
+    # 최종적으로 하나의 비교용 문자열을 반환
+    return f"{question}__{options}__{code_block}__{table_data}"
 
 # --- 5. 좌측 사이드바 제어반 ---
 with st.sidebar:
@@ -96,6 +107,7 @@ with st.sidebar:
         st.session_state.messages = []  # 대화 내역 초기화
         st.session_state.memory = []    # AI 문맥 초기화
         reset_quiz_state()              # 풀던 문제 초기화
+        reset_mock_exam_state()         # 모의고사 상태 초기화
         st.rerun()                      # 화면 새로고침하여 바뀐 자격증으로 시작
 
     st.subheader(f"[{selected_cert_label}] 모드")
@@ -112,14 +124,15 @@ with st.sidebar:
         st.session_state.mode = "quiz_weakness"
         reset_quiz_state()
 
+    if st.button("🔥 실전 모의고사 풀어보기", use_container_width=True, type="primary"):
+        st.session_state.mode = "mock_exam"
+        reset_mock_exam_state()
+        st.rerun()
+
     if st.button("📝 약점 족집게 개념노트 생성", type="primary", use_container_width=True):
         st.session_state.mode = "final_note"
         reset_quiz_state()
-    
-    if st.button("🔥 실전 모의고사 풀어보기", use_container_width=True, type="primary"):
-        st.session_state.mode = "mock_exam"
-        reset_mock_exam_state() # 진입 시 상태 초기화
-        st.rerun()
+
     
     st.write("---")
     if st.button("🗑️ 학습 진도 초기화", type="secondary"):
@@ -132,6 +145,7 @@ with st.sidebar:
             if st.button("✅ 확인", type="primary"):
                 db_manager.reset_quiz_logs()
                 reset_quiz_state()
+                reset_mock_exam_state()
                 
                 if "final_note_content" in st.session_state:
                     del st.session_state["final_note_content"]
@@ -285,8 +299,7 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
             if st.button("정답 제출", type="primary"):
                 if choice:
                     st.session_state.submitted = True
-                    match = re.search(r'\d+', choice)
-                    selected_num = int(match.group()) if match else -1 
+                    selected_num = get_selected_option_number(choice, options)
 
                     is_correct = (selected_num == quiz.get("answer"))
                     db_manager.log_quiz_result(selected_cert, quiz.get("topic"), is_correct)
@@ -300,8 +313,7 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
                     st.warning("보기를 선택한 후 제출해 주세요!")
 
         if st.session_state.submitted:
-            match = re.search(r'\d+', choice)
-            selected_num = int(match.group()) if match else -1
+            selected_num = get_selected_option_number(choice, options)
             is_correct = (selected_num == quiz.get("answer"))
             
             st.write("---") 
@@ -520,45 +532,16 @@ elif st.session_state.mode in ["quiz_random", "quiz_weakness"]:
                             reset_quiz_state()
                             st.rerun()
 
-elif st.session_state.mode == "final_note":
-    st.header(f"📖 {selected_cert_label} 파이널 요약 오답노트")
-    
-    with st.spinner("학생의 오답 패턴을 분석하여 맞춤형 요약본을 생성하고 있습니다... "):
-        top_weak_topics = db_manager.get_top_weakest_topics(selected_cert, n=3)
-        
-        if not top_weak_topics:
-            st.warning("아직 틀린 문제가 없거나 데이터가 부족합니다. 모의고사를 더 풀어주세요")
-        else:
-            display_topics = [TOPIC_KOR_MAP.get(t, t) for t in top_weak_topics]
-            st.info(f"🔍 **집중 분석된 핵심 취약 단원 Top 3**: {', '.join(display_topics)}")
-            
-            if "final_note_content" not in st.session_state or st.session_state.get("final_note_cert") != selected_cert:
-                final_note = tutor_engine.generate_final_note(selected_cert, top_weak_topics)
-                st.session_state.final_note_content = final_note
-                st.session_state.final_note_cert = selected_cert
-            else:
-                final_note = st.session_state.final_note_content
-                
-            # 화면에 렌더링
-            with st.container(border=True):
-                st.markdown(final_note)
-            
-            st.download_button(
-                label="📥 나만의 오답노트 다운로드 (.md)",
-                data=final_note,
-                file_name=f"{selected_cert_label}_파이널_오답노트.md",
-                mime="text/markdown",
-                type="primary"
-            )
-            st.caption("※ 다운로드한 .md 파일은 마크다운 뷰어 혹은 브라우저에서 열어 PDF로 인쇄(Ctrl+P)할 수 있습니다.")
-
 elif st.session_state.mode == "mock_exam":
     st.header(f"⏱️ {selected_cert_label} 실전 모의고사")
     
-    # 해당 자격증에 맞는 과목 리스트 (자네의 DB 구조에 맞게 수정 필요)
-    # 예시: 정보처리기사일 경우
-    available_topics_kor = ["소프트웨어 설계", "소프트웨어 개발", "데이터베이스 구축", "프로그래밍 언어 활용", "정보시스템 구축 관리"]
-    kor_to_eng_map = {v: k for k, v in TOPIC_KOR_MAP.items()} # 한글 -> 영문 key 변환용
+    current_cert_topics = CERT_CONFIG[selected_cert]["topics"]
+
+    # 멀티셀렉트에는 한글 과목명을 보여주기 위해 values()를 사용
+    available_topics_kor = list(current_cert_topics.values())
+
+    # 사용자가 선택한 한글 과목명을 다시 영문 topic key로 되돌리기 위한 매핑
+    kor_to_eng_map = {topic_kor: topic_eng for topic_eng, topic_kor in current_cert_topics.items()}
     
     # ---------------------------------------------------------
     # [Step 1] 모의고사 조건 설정
@@ -606,12 +589,42 @@ elif st.session_state.mode == "mock_exam":
                 count = dist["count"]
                 
                 for _ in range(count):
-                    # 기존 엔진 재사용 (실제 퀴즈 생성 함수명에 맞게 호출)
-                    # 주의: LLM 호출이 많으므로 시간이 걸림.(보완점)
-                    quiz_data = tutor_engine.generate_quiz(topic_eng, selected_cert)
-                    quiz_data["topic_kor"] = topic_kor # 통계를 위해 과목명 저장
-                    generated_questions.append(quiz_data)
+                    max_retries = 3  # 똑같은 문제 나오면 최대 3번까지 LLM 다시 호출
+                    is_success = False
                     
+                    for attempt in range(max_retries):
+                        # 1. 앞서 만든 문제 리스트(generated_questions)를 백엔드에 넘겨줌
+                        quiz_data = tutor_engine.generate_advanced_quiz(
+                            target_topic=topic_eng,
+                            cert=selected_cert,
+                            generated_history=generated_questions
+                            )
+
+
+                        new_signature = normalize_quiz_signature(quiz_data)
+                        
+                        # 2. 클라이언트 단 중복 검사 (새로 받은 문제가 이미 리스트에 있는지 텍스트 비교)
+                        #  question만 보지 않고 options / code_block / table_data까지 합쳐 비교함
+                        is_duplicate = any(
+                            normalize_quiz_signature(existing_quiz) == new_signature
+                            for existing_quiz in generated_questions
+                            )
+                        
+                        if not is_duplicate:
+                            # 중복이 아니면 정상 등록
+                            quiz_data["topic_kor"] = topic_kor
+                            generated_questions.append(quiz_data)
+                            is_success = True
+                            break  # 성공했으니 재시도(attempt) 루프 탈출
+                        else:
+                            print(f"⚠️ [경고] 중복 문제 발생. LLM 재호출 중... (시도 {attempt+1}/{max_retries})")
+                    
+                   
+                    if not is_success:
+                        quiz_data["topic_kor"] = topic_kor
+                        generated_questions.append(quiz_data)
+                        
+                    # 진행률 바 업데이트
                     current_gen += 1
                     progress_bar.progress(current_gen / total_to_gen)
             
@@ -639,25 +652,46 @@ elif st.session_state.mode == "mock_exam":
             # 라디오 버튼으로 사용자 답 입력 받기 (key를 동적으로 부여)
             user_choice = st.radio("정답을 선택하세요", current_quiz['options'], key=f"mock_radio_{curr_idx}")
             
+
         col1, col2 = st.columns(2)
         with col2:
             if curr_idx < total_q - 1:
                 if st.button("다음 문제 ➡️", use_container_width=True, type="primary"):
-                    # 답 저장 후 인덱스 증가
-                    st.session_state.mock_answers.append(user_choice)
-                    st.session_state.mock_current_q += 1
-                    st.rerun()
+                    if user_choice is None:
+                        st.warning("보기를 선택한 후 다음 문제로 이동해주세요.")
+                    else:
+                        # 답 저장 후 인덱스 증가
+                        selected_num = get_selected_option_number(user_choice, current_quiz["options"])
+                        st.session_state.mock_answers.append(selected_num)
+                        st.session_state.mock_current_q += 1
+                        st.rerun()
             else:
                 if st.button("✅ 최종 답안 제출 및 채점하기", use_container_width=True, type="primary"):
-                    st.session_state.mock_answers.append(user_choice)
-                    st.session_state.mock_step = "result"
-                    st.rerun()
+                    if user_choice is None:
+                        st.warning("보기를 선택한 후 다음 문제로 제출해주세요.")
+                    else:
+                        selected_num = get_selected_option_number(user_choice, current_quiz["options"])
+                        st.session_state.mock_answers.append(selected_num)
+                        st.session_state.mock_step = "result"
+                        st.rerun()
 
     # ---------------------------------------------------------
     # [Step 4] 채점 결과창
     # ---------------------------------------------------------
     elif st.session_state.mock_step == "result":
         st.success("🎉 모의고사가 종료되었습니다. 수고하셨습니다!")
+
+        # 모의고사 결과를 DB에 1회만 반영
+        if not st.session_state.mock_logged:
+            for idx, q in enumerate(st.session_state.mock_questions):
+                is_correct = (st.session_state.mock_answers[idx] == q["answer"])
+                db_manager.log_quiz_result(selected_cert, q.get("topic"), is_correct)
+
+            st.session_state.mock_logged = True
+
+            # 통계 기반 노트 캐시가 있으면 삭제
+            if "final_note_content" in st.session_state:
+                del st.session_state["final_note_content"]
         
         # 1. 전체 채점 계산
         total_q = st.session_state.mock_total_q
@@ -724,14 +758,53 @@ elif st.session_state.mode == "mock_exam":
                     
                 st.markdown("---")
                 colA, colB = st.columns(2)
-                colA.info(f"🙋‍♂️ 내가 선택한 답:\n**{user_ans}**")
-                colB.success(f"🎯 실제 정답:\n**{real_ans}**")
+
+                user_ans_num = st.session_state.mock_answers[idx]
+                real_ans_num = q["answer"]
+
+                user_ans_text = q["options"][user_ans_num - 1] if 1 <= user_ans_num <= len(q["options"]) else "선택 없음"
+                real_ans_text = q["options"][real_ans_num - 1] if 1 <= real_ans_num <= len(q["options"]) else "정답 데이터 오류"
+
+                colA.info(f"🙋‍♂️ 내가 선택한 답:\n**{user_ans_num}번. {user_ans_text}**")
+                colB.success(f"🎯 실제 정답:\n**{real_ans_num}번. {real_ans_text}**")
                 
                 st.markdown(f"💬 **AI 해설:**\n{q.get('explanation', '해설이 없습니다.')}")
                 
         if st.button("돌아가기 (모의고사 종료)"):
             st.session_state.mode = "study" # 기본 학습 모드로 복귀
             st.rerun()
+
+elif st.session_state.mode == "final_note":
+    st.header(f"📖 {selected_cert_label} 파이널 요약 오답노트")
+    
+    with st.spinner("학생의 오답 패턴을 분석하여 맞춤형 요약본을 생성하고 있습니다... "):
+        top_weak_topics = db_manager.get_top_weakest_topics(selected_cert, n=3)
+        
+        if not top_weak_topics:
+            st.warning("아직 틀린 문제가 없거나 데이터가 부족합니다. 모의고사를 더 풀어주세요")
+        else:
+            display_topics = [TOPIC_KOR_MAP.get(t, t) for t in top_weak_topics]
+            st.info(f"🔍 **집중 분석된 핵심 취약 단원 Top 3**: {', '.join(display_topics)}")
+            
+            if "final_note_content" not in st.session_state or st.session_state.get("final_note_cert") != selected_cert:
+                final_note = tutor_engine.generate_final_note(selected_cert, top_weak_topics)
+                st.session_state.final_note_content = final_note
+                st.session_state.final_note_cert = selected_cert
+            else:
+                final_note = st.session_state.final_note_content
+                
+            # 화면에 렌더링
+            with st.container(border=True):
+                st.markdown(final_note)
+            
+            st.download_button(
+                label="📥 나만의 오답노트 다운로드 (.md)",
+                data=final_note,
+                file_name=f"{selected_cert_label}_파이널_오답노트.md",
+                mime="text/markdown",
+                type="primary"
+            )
+            st.caption("※ 다운로드한 .md 파일은 마크다운 뷰어 혹은 브라우저에서 열어 PDF로 인쇄(Ctrl+P)할 수 있습니다.")
 
 
 st.markdown(
