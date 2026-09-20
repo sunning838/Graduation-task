@@ -1,0 +1,78 @@
+{
+  "EIP": {
+    "label": "정보처리기사",
+    "topics": {
+      "software_design": "소프트웨어 설계",
+      "software_development": "소프트웨어 개발",
+      "database": "데이터베이스 구축",
+      "programming_language": "프로그래밍 언어 활용",
+      "info_system": "정보시스템 구축 관리"
+    },
+    "option_count": 4,
+    "research": {
+      "enabled": true,
+      "model": "gemini-2.5-flash",
+      "max_queries": 2,
+      "max_sources": 4,
+      "reference_date": null,
+      "require_effective_date": false,
+      "preferred_domains": [
+        "docs.python.org",
+        "docs.oracle.com",
+        "postgresql.org",
+        "developer.mozilla.org",
+        "nist.gov",
+        "sei.cmu.edu",
+        "q-net.or.kr"
+      ],
+      "allowed_domains": [
+        "docs.python.org",
+        "docs.oracle.com",
+        "postgresql.org",
+        "developer.mozilla.org",
+        "learn.microsoft.com",
+        "dev.mysql.com",
+        "nist.gov",
+        "sei.cmu.edu",
+        "mit.edu",
+        "stanford.edu",
+        "q-net.or.kr",
+        "kisa.or.kr",
+        "agilemanifesto.org"
+      ],
+      "blocked_domains": []
+    }
+  },
+  "LREA_1": {
+    "label": "공인중개사 1차",
+    "topics": {
+      "civil_law": "민법 및 민사특별법",
+      "housing_lease": "주택임대차보호법",
+      "commercial_lease": "상가건물 임대차보호법",
+      "aggregate_building": "집합건물법",
+      "provisional_registration": "가등기담보법",
+      "real_name_registration": "부동산실명법"
+    },
+    "option_count": 5,
+    "research": {
+      "enabled": true,
+      "model": "gemini-2.5-flash",
+      "max_queries": 2,
+      "max_sources": 4,
+      "reference_date": null,
+      "require_effective_date": true,
+      "preferred_domains": [
+        "law.go.kr",
+        "molit.go.kr",
+        "q-net.or.kr"
+      ],
+      "allowed_domains": [
+        "law.go.kr",
+        "molit.go.kr",
+        "q-net.or.kr",
+        "reb.or.kr"
+      ],
+      "blocked_domains": []
+    }
+  }
+}

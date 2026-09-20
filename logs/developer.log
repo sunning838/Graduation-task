@@ -1,0 +1,6 @@
+WARNING:backend.lesson_visuals:Lesson visual rejected: attempt=1 reason=Unknown visual type
+WARNING:backend.lesson_json:Learning JSON response rejected: attempt=1 finish=MAX_TOKENS length=796 error=ValueError
+WARNING:backend.lesson_visuals:Lesson visual rejected: attempt=2 reason=Unknown visual type
+WARNING:backend.lecture_research:Google lesson search: queries=['V-모델 원리', 'V-모델 조건', 'V-모델 정의']
+WARNING:backend.lesson_visuals:Lesson visual rejected: attempt=1 reason=Evidence not found in source
+WARNING:backend.lesson_visuals:Lesson visual rejected: attempt=2 reason=Evidence not found in source

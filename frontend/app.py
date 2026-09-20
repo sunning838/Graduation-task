@@ -26,28 +26,49 @@ db_manager.init_db()
 def load_engine():
     return AITutorEngine()
 
-tutor_engine = load_engine()
+import copy
+from backend.learning import catalog
+from backend.lesson_display import display_title
+from backend.practice_bridge import install
+# Keep the cached shared engine free of learner-specific scope.
+tutor_engine = copy.copy(load_engine())
+_, bridge_lessons = catalog()
+bridge_lesson = next((l for l in bridge_lessons if l['id'] == st.query_params.get('lesson') and l['cert'] == st.query_params.get('cert')), None)
+install(tutor_engine, bridge_lesson)
+if bridge_lesson:
+    st.info('개념 학습 연계: ' + display_title(bridge_lesson['title']))
+    st.caption('전체 범위 연습은 주소의 학습 범위를 해제하고 이용하세요.')
 # 4. 세션 상태 초기화
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "memory" not in st.session_state:
     st.session_state.memory = []
 if "mode" not in st.session_state:
-    st.session_state.mode = "study"
+    st.session_state.mode = "quiz_random" if bridge_lesson else "study"
 if "mock_logged" not in st.session_state:
     st.session_state.mock_logged = False
+
+# Direct links bypass sidebar reset buttons. Initialize each missing key while
+# preserving an existing answer/explanation on Streamlit reruns.
+QUIZ_STATE_DEFAULTS = {
+    "submitted": False,
+    "show_explanation": False,
+    "show_essay_mode": False,
+    "essay_graded": False,
+    "socratic_active": False,
+    "socratic_history": [],
+    "socratic_status": "continue",
+    "hint_level": 0,
+}
+for state_key, default_value in QUIZ_STATE_DEFAULTS.items():
+    if state_key not in st.session_state:
+        st.session_state[state_key] = copy.deepcopy(default_value)
 
 def reset_quiz_state():
     if "current_quiz" in st.session_state:
         del st.session_state.current_quiz
-    st.session_state.submitted = False
-    st.session_state.show_explanation = False
-    st.session_state.show_essay_mode = False
-    st.session_state.essay_graded = False
-    st.session_state.socratic_active = False
-    st.session_state.socratic_history = []
-    st.session_state.socratic_status = "continue"
-    st.session_state.hint_level = 0
+    for state_key, default_value in QUIZ_STATE_DEFAULTS.items():
+        st.session_state[state_key] = copy.deepcopy(default_value)
     if "understanding_map" in st.session_state:
         del st.session_state["understanding_map"]
 
@@ -95,7 +116,7 @@ with st.sidebar:
     st.title("일타 강사 튜터 시스템")
     
     # 자격증 선택 UI (드롭다운)
-    selected_cert_label = st.selectbox("🎓 자격증을 선택하세요", list(CERT_MAP.keys()))
+    selected_cert_label = st.selectbox("🎓 자격증을 선택하세요", list(CERT_MAP.keys()), index=list(CERT_MAP.values()).index(st.query_params.get("cert")) if st.query_params.get("cert") in CERT_MAP.values() else 0)
     selected_cert = CERT_MAP[selected_cert_label]
 
     # 자격증 변경 감지 및 세션(컨텍스트) 완벽 초기화
