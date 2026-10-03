@@ -2,6 +2,18 @@ import logging
 import sys
 from urllib.parse import urlencode
 from pathlib import Path
+from backend.learning import catalog, Progress, teach, diagram
+from backend.lesson_display import learner_text, display_title
+
+from backend.tts_engine import (
+    get_cached_lesson_package,
+    generate_lesson_package,
+)
+
+from frontend.tts_player import (
+    render_synced_lecture,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -163,57 +175,414 @@ variant_prompts = {
 variant_request = None
 request = None
 
-def render_message(message):
-    with st.chat_message(message['role']):
-        st.markdown(learner_text(message['text']) if message['role'] == 'assistant' else message['text'])
-        if not message.get('data'):
-            return
-        visual = diagram(message['data'])
-        if visual is not None and not isinstance(visual, dict):
-            logging.warning('Skipping legacy visual result: %s', type(visual).__name__)
-            visual = None
-        if isinstance(visual, dict) and visual.get('kind') in ('table', 'graph'):
-            st.subheader(display_title(visual['title']))
-            st.caption(visual['purpose'])
-            if visual['kind'] == 'table':
-                import pandas as pd
-                st.table(pd.DataFrame(visual['rows'], columns=visual['columns']))
-            else:
-                st.graphviz_chart(visual['dot'])
-        research = message['data'].get('research', {})
-        if research.get('status') == 'supplemented':
-            st.caption('웹 검색 참고')
-            if hasattr(st, 'iframe'):
-                st.iframe(research['suggestions_html'], height='content')
-            else:
-                import streamlit.components.v1 as components
-                components.html(research['suggestions_html'], height=180, scrolling=True)
-            for source in research.get('sources', []):
-                st.link_button(source['title'], source['url'])
+def render_message_extras(message):
 
-lecture_pane, tutor_pane = st.columns([1.65, 1], gap='large')
+    """
+    도식과 웹 검색 자료만 출력한다.
+
+    TTS 동기화 화면에서는
+    본문 텍스트를 별도로 출력하기 때문에
+    extras를 분리해 둔다.
+    """
+
+    if not message.get(
+        'data'
+    ):
+
+        return
+
+
+    visual = diagram(
+        message['data']
+    )
+
+
+    if (
+        visual is not None
+        and
+        not isinstance(
+            visual,
+            dict,
+        )
+    ):
+
+        logging.warning(
+            'Skipping legacy visual result: %s',
+            type(
+                visual
+            ).__name__,
+        )
+
+        visual = None
+
+
+    # ========================================================
+    # 표 / 그래프
+    # ========================================================
+
+    if (
+        isinstance(
+            visual,
+            dict,
+        )
+        and
+        visual.get(
+            'kind'
+        )
+        in (
+            'table',
+            'graph',
+        )
+    ):
+
+        st.subheader(
+            display_title(
+                visual[
+                    'title'
+                ]
+            )
+        )
+
+        st.caption(
+            visual[
+                'purpose'
+            ]
+        )
+
+
+        if (
+            visual[
+                'kind'
+            ]
+            == 'table'
+        ):
+
+            import pandas as pd
+
+
+            st.table(
+
+                pd.DataFrame(
+
+                    visual[
+                        'rows'
+                    ],
+
+                    columns=
+                        visual[
+                            'columns'
+                        ],
+
+                )
+
+            )
+
+
+        else:
+
+            st.graphviz_chart(
+                visual[
+                    'dot'
+                ]
+            )
+
+
+    # ========================================================
+    # 외부 검색 자료
+    # ========================================================
+
+    research = (
+
+        message[
+            'data'
+        ].get(
+            'research',
+            {},
+        )
+
+    )
+
+
+    if (
+        research.get(
+            'status'
+        )
+        == 'supplemented'
+    ):
+
+        st.caption(
+            '웹 검색 참고'
+        )
+
+
+        if hasattr(
+            st,
+            'iframe',
+        ):
+
+            st.iframe(
+
+                research[
+                    'suggestions_html'
+                ],
+
+                height='content',
+
+            )
+
+        else:
+
+            import streamlit.components.v1 as components
+
+
+            components.html(
+
+                research[
+                    'suggestions_html'
+                ],
+
+                height=180,
+
+                scrolling=True,
+
+            )
+
+
+        for source in research.get(
+            'sources',
+            [],
+        ):
+
+            st.link_button(
+
+                source[
+                    'title'
+                ],
+
+                source[
+                    'url'
+                ],
+
+            )
+
+
+def render_message(message):
+
+    """
+    기존 질문 AI와 강의 화면에서
+    일반 메시지를 출력한다.
+    """
+
+    with st.chat_message(
+        message[
+            'role'
+        ]
+    ):
+
+        if (
+            message[
+                'role'
+            ]
+            == 'assistant'
+        ):
+
+            st.markdown(
+
+                learner_text(
+                    message[
+                        'text'
+                    ]
+                )
+
+            )
+
+        else:
+
+            st.markdown(
+                message[
+                    'text'
+                ]
+            )
+
+        render_message_extras(
+            message
+        )
+        
+lecture_pane, tutor_pane = st.columns(
+    [1.65, 1],
+    gap='large',
+)
+
+
+# 왼쪽 개념 강의
+
 with lecture_pane:
+
     st.subheader('개념 강의')
-    tabs = st.tabs(list(variant_prompts), key='lecture_tab', on_change='rerun')
+
+    tabs = st.tabs(
+        list(variant_prompts),
+        key='lecture_tab',
+        on_change='rerun',
+    )
+
     selected_variant = st.session_state.lecture_tab
-    for label, tab in zip(variant_prompts, tabs):
+
+    for label, tab in zip(
+        variant_prompts,
+        tabs,
+    ):
+
         if not tab.open:
             continue
-        with tab:
-            with st.container(height=650, border=True):
-                saved = st.session_state.lecture_variants.get(label)
-                if saved:
-                    render_message(saved)
-                elif st.session_state.variant_errors.get(label):
-                    st.info('설명을 준비하지 못했습니다. 다시 시도해 주세요.')
-                    if st.button('설명 다시 준비하기', key='retry_' + label):
-                        variant_request = label
-                else:
-                    variant_request = label
-                    st.caption('설명을 준비하고 있습니다.')
-                lecture_status = st.empty()
 
-current_explanation = st.session_state.lecture_variants.get(selected_variant)
+        with tab:
+
+            saved = (
+                st.session_state
+                .lecture_variants
+                .get(label)
+            )
+
+            # =================================================
+            # 강의가 준비된 상태
+            # =================================================
+
+            if saved:
+
+                package = get_cached_lesson_package(
+                    active,
+                    label,
+                    saved['text'],
+                )
+
+                # =============================================
+                # TTS가 이미 생성된 경우
+                # =============================================
+
+                if package:
+
+                    st.markdown("#### 🎧 AI 음성 강의")
+
+                    st.caption(
+                        "음성을 재생하면 현재 읽고 있는 "
+                        "강의 내용이 자동으로 강조됩니다."
+                    )
+
+                    render_synced_lecture(
+                        package,
+                        height=650,
+                    )
+
+                    # 표 / 그래프 등의 추가 자료
+                    render_message_extras(saved)
+
+                # =============================================
+                # 아직 TTS가 없는 경우
+                # =============================================
+
+                else:
+
+                    # ★ 버튼을 강의 내용 위로 이동
+                    st.markdown("#### 🎧 AI 음성 강의")
+
+                    st.caption(
+                        "현재 강의를 AI 강사의 음성으로 "
+                        "들을 수 있습니다."
+                    )
+
+                    if st.button(
+                        '🔊 AI 음성 강의 만들기',
+                        key=f"make_tts_{active['id']}_{label}",
+                        type='primary',
+                        use_container_width=True,
+                    ):
+
+                        try:
+
+                            with st.spinner(
+                                'AI 강사가 음성 강의를 '
+                                '준비하고 있습니다…'
+                            ):
+
+                                generate_lesson_package(
+                                    active,
+                                    label,
+                                    saved['text'],
+                                )
+
+                            st.rerun()
+
+                        except Exception:
+
+                            logging.exception(
+                                'TTS generation failed: %s / %s',
+                                active['id'],
+                                label,
+                            )
+
+                            st.error(
+                                '음성 강의를 생성하지 못했습니다. '
+                                '잠시 후 다시 시도해 주세요.'
+                            )
+
+                    st.divider()
+
+                    # 기존 강의 내용
+                    with st.container(
+                        height=650,
+                        border=True,
+                    ):
+
+                        render_message(saved)
+
+            # =================================================
+            # 강의 생성 실패
+            # =================================================
+
+            elif (
+                st.session_state
+                .variant_errors
+                .get(label)
+            ):
+
+                st.info(
+                    '설명을 준비하지 못했습니다. '
+                    '다시 시도해 주세요.'
+                )
+
+                if st.button(
+                    '설명 다시 준비하기',
+                    key='retry_' + label,
+                ):
+
+                    variant_request = label
+
+            # =================================================
+            # 아직 강의 자체가 생성되지 않음
+            # =================================================
+
+            else:
+
+                variant_request = label
+
+                st.caption(
+                    '설명을 준비하고 있습니다.'
+                )
+
+            lecture_status = st.empty()
+
+
+# ============================================================
+# 오른쪽 질문 AI가 참고할 현재 강의
+# ============================================================
+
+current_explanation = (
+    st.session_state
+    .lecture_variants
+    .get(selected_variant)
+)
+
 with tutor_pane:
     st.subheader('튜터에게 질문')
     st.caption(f'현재 보고 있는 설명: {selected_variant}')

@@ -16,3 +16,6 @@ venv/
 # 5. OS 및 에디터 설정
 .vscode/
 .DS_Store
+
+# 6. TTS 음성 캐시
+backend/storage/audio_cache/
