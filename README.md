@@ -25,6 +25,12 @@ pip install -r requirements.txt
 
 streamlit run frontend/app.py 명령어로 서버를 실행합니다
 
+## 백엔드 테스트
+
+프로젝트 루트에서 `.\venv\Scripts\python.exe -m backend.test`로 자동 테스트를 실행합니다.
+테스트 파일과 성능 측정·검색 점검 도구는 `backend/test`에서 관리합니다.
+개별 실행 방법은 [백엔드 테스트 안내](backend/test/README.md)를 확인하세요.
+
 -자료 출처 - 
 시나공 기출문제집 정보처리기사 필기(길벗알앤디 지음/ 강윤석, 김용갑, 감우경, 김종일)
 국가법령정보센터

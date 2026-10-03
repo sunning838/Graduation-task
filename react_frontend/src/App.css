@@ -3911,3 +3911,26 @@ textarea::placeholder {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+
+/* Live learning statistics */
+.learning-data-status { padding: 20px; line-height: 1.7; }
+.learning-data-status button, .dashboard-card-header > button, .weakness-page-header > button {
+  padding: 8px 12px; border: 1px solid #8886; border-radius: 8px;
+  color: inherit; background: transparent; cursor: pointer;
+}
+.learning-subject-list { display: grid; gap: 10px; margin: 20px 0; }
+.learning-subject-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding: 12px; border: 1px solid #8884; border-radius: 8px;
+}
+.learning-subject-row strong { margin-right: auto; }
+.learning-subject-row small { opacity: .75; }
+.weakness-page button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Persisted concept summaries */
+.wrongnote-page button:disabled { opacity: .5; cursor: not-allowed; }
+.summary-markdown { line-height: 1.8; overflow-wrap: anywhere; }
+.summary-markdown h3 { margin-top: 1.5em; }
+.summary-markdown pre { overflow-x: auto; }
+.summary-markdown table { display: block; overflow-x: auto; }

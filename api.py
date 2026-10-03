@@ -1,238 +1,280 @@
-from uuid import uuid4
+"""Local React API: persistent conversations and quiz attempts."""
+import logging
+import os
+from functools import lru_cache
+from pathlib import Path
+from typing import Annotated, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from langchain_core.messages import AIMessage, HumanMessage
+from pydantic import BaseModel, Field, StringConstraints
 
-from backend.chat_engine import AITutorEngine
-from backend import db_manager
-from backend.cert_config import TOPIC_KOR_MAP
+from backend.api_store import APIStore, StateError
+from backend.cert_config import CERT_CONFIG
+from backend.db_manager import DB_PATH
+from backend.learning_stats import learning_stats
+from backend.summary_notes import summary_view, generate_summaries
+from backend import mock_exams
+from backend import mock_preparation
 
-
-app = FastAPI()
-
-
-# =========================================================
-# CORS
-# React(localhost:5173) → FastAPI(localhost:8000)
-# =========================================================
-
+LOG = logging.getLogger(__name__)
+app = FastAPI(title='자격증 AI 튜터 API')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=os.getenv('FRONTEND_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(','),
+    allow_credentials=True, allow_methods=['*'], allow_headers=['*'],
 )
 
 
-# =========================================================
-# 시스템 초기화
-# =========================================================
-
-db_manager.init_db()
-
-# AI 엔진은 서버 시작 시 한 번만 생성
-tutor_engine = AITutorEngine()
+@lru_cache
+def get_store():
+    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+    return APIStore(DB_PATH)
 
 
-# 문제 데이터를 임시로 서버 메모리에 보관
-# 추후 로그인/사용자 기능을 만들 때 DB 구조로 변경 가능
-quiz_store = {}
+@lru_cache
+def get_engine():
+    # No model download or API-key requirement when merely importing this module.
+    from backend.chat_engine import AITutorEngine
+    return AITutorEngine()
 
 
-# =========================================================
-# 요청 / 응답 모델
-# =========================================================
+def fail(status, code, message, retryable=False):
+    raise HTTPException(status, detail=dict(code=code, message=message, retryable=retryable))
+
+
+@app.exception_handler(StateError)
+async def state_error_handler(_request, exc):
+    return JSONResponse(status_code=exc.status, content={'detail': {
+        'code': exc.code, 'message': exc.message, 'retryable': False}})
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(_request, _exc):
+    return JSONResponse(status_code=422, content={'detail': {
+        'code': 'INVALID_REQUEST', 'message': '입력한 자격증, 질문 또는 답안 형식을 확인해 주세요.',
+        'retryable': False}})
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(_request, exc):
+    LOG.error('API request failed', exc_info=(type(exc), exc, exc.__traceback__))
+    return JSONResponse(status_code=500, content={'detail': {
+        'code': 'INTERNAL_ERROR', 'message': '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        'retryable': True}})
+
+
+Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
+Identifier = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+
 
 class ChatRequest(BaseModel):
-    message: str
-    cert: str = "EIP"
-    answer_length: str = "medium"
-
-
-class ChatResponse(BaseModel):
-    answer: str
+    message: Text
+    cert: Identifier = 'EIP'
+    answer_length: Literal['short', 'medium', 'long'] = 'medium'
+    conversation_id: Identifier | None = None
 
 
 class QuizRequest(BaseModel):
-    cert: str = "EIP"
+    cert: Identifier = 'EIP'
+    mode: Literal['random', 'weakness'] = 'random'
+
+
+class SummaryRequest(BaseModel):
+    cert: Identifier = 'EIP'
+
+
+class ExamPart(BaseModel):
+    topic: Identifier
+    count: int = Field(strict=True, ge=1, le=100)
+
+
+class ExamRequest(BaseModel):
+    cert: Identifier
+    distribution: list[ExamPart] = Field(min_length=1, max_length=100)
+    request_id: Identifier
+
+
+class ExamAnswer(BaseModel):
+    selected_answer: int | None = Field(default=None, strict=True, ge=1)
+
+
+class ExamSubmit(BaseModel):
+    confirm_unanswered: bool = False
 
 
 class QuizSubmitRequest(BaseModel):
-    quiz_id: str
-    selected_answer: int
+    attempt_id: Identifier | None = None
+    quiz_id: Identifier | None = None  # Compatibility with the previous client.
+    selected_answer: int = Field(strict=True, ge=1)
 
 
-# =========================================================
-# 서버 상태 확인
-# =========================================================
+def certification(cert):
+    if cert not in CERT_CONFIG:
+        fail(422, 'INVALID_CERT', '지원하지 않는 자격증입니다.')
+    return CERT_CONFIG[cert]
 
-@app.get("/")
+
+@app.get('/')
 def root():
-    return {
-        "message": "AI Tutor API 서버가 정상 실행 중입니다."
-    }
+    return {'message': 'AI Tutor API 서버가 정상 실행 중입니다.'}
 
 
-# =========================================================
-# AI Tutor 채팅
-# =========================================================
-
-@app.post("/api/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
-
-    length_instructions = {
-        "short": (
-            "답변은 핵심만 매우 간결하게 설명하세요. "
-            "가능하면 3~5문장 정도로 답변하고 "
-            "불필요한 세부 설명이나 긴 예시는 생략하세요."
-        ),
-
-        "medium": (
-            "핵심 개념을 중심으로 이해하기 쉽게 설명하세요. "
-            "필요한 경우 짧은 예시나 목록을 사용할 수 있지만 "
-            "지나치게 길게 설명하지 마세요."
-        ),
-
-        "long": (
-            "개념을 충분히 이해할 수 있도록 자세하게 설명하세요. "
-            "필요한 경우 이유, 특징, 예시, 비교, 표, 목록 등을 활용하세요."
-        ),
-    }
-
-    length_instruction = length_instructions.get(
-        request.answer_length,
-        length_instructions["medium"]
-    )
-
-    query = f"""
-사용자 질문:
-{request.message}
-
-[답변 길이 지침]
-{length_instruction}
-"""
-
-    answer = tutor_engine.generate_response(
-        query=query,
-        chat_history=[],
-        student_status="분석된 상태 없음",
-        cert=request.cert,
-    )
-
-    return ChatResponse(
-        answer=answer
-    )
+@app.get('/api/certifications')
+def certifications():
+    return {'certifications': [dict(id=key, label=value['label'],
+        option_count=value.get('option_count', 4),
+        topics=[dict(id=k, label=v) for k, v in value['topics'].items()])
+        for key, value in CERT_CONFIG.items()]}
 
 
-# =========================================================
-# 일반 문제 생성
-# =========================================================
-
-@app.post("/api/quiz")
-def create_quiz(request: QuizRequest):
-
+@app.post('/api/chat')
+def chat(request: ChatRequest, store: APIStore = Depends(get_store)):
+    certification(request.cert)
+    conversation_id, revision, rows = store.conversation(request.conversation_id, request.cert)
+    history = [(HumanMessage if row['role'] == 'user' else AIMessage)(content=row['content'])
+               for row in rows]
+    lengths = {'short': '핵심만 3~5문장으로 간결하게 설명하세요.',
+               'medium': '핵심 개념과 필요한 예시를 중심으로 이해하기 쉽게 설명하세요.',
+               'long': '이유, 특징, 예시, 비교를 활용해 자세히 설명하세요.'}
     try:
-        quiz = tutor_engine.generate_advanced_quiz(
-            cert=request.cert
-        )
-
-        quiz_id = str(uuid4())
-
-        # 정답과 해설을 포함한 전체 데이터는
-        # 서버에만 저장
-        quiz_store[quiz_id] = {
-            "cert": request.cert,
-            "quiz": quiz,
-        }
-
-        topic = quiz.get("topic", "알 수 없음")
-
-        # React에는 문제 풀이에 필요한 데이터만 전달
-        # 정답(answer)은 아직 보내지 않음
-        return {
-            "quiz_id": quiz_id,
-            "question": quiz.get(
-                "question",
-                "문제를 불러오지 못했습니다."
-            ),
-            "topic": topic,
-            "topic_label": TOPIC_KOR_MAP.get(
-                topic,
-                topic
-            ),
-            "options": quiz.get(
-                "options",
-                []
-            ),
-            "code_block": quiz.get(
-                "code_block"
-            ),
-            "table_data": quiz.get(
-                "table_data"
-            ),
-        }
-
-    except Exception as e:
-        print(f"[API 오류] 문제 생성 실패: {e}")
-
-        raise HTTPException(
-            status_code=500,
-            detail="문제를 생성하지 못했습니다."
-        )
+        answer = get_engine().generate_response(
+            query=f'{request.message}\n\n[답변 길이 지침]\n{lengths[request.answer_length]}',
+            chat_history=history, student_status='분석된 상태 없음', cert=request.cert)
+        if not isinstance(answer, str) or not answer.strip():
+            raise ValueError('Empty AI response')
+    except Exception:
+        LOG.exception('Chat generation failed')
+        fail(502, 'CHAT_GENERATION_FAILED', '답변을 준비하지 못했습니다. 다시 시도해 주세요.', True)
+    store.append_turn(conversation_id, revision, request.message, answer)
+    return {'conversation_id': conversation_id, 'answer': answer}
 
 
-# =========================================================
-# 문제 정답 제출 및 채점
-# =========================================================
+@app.get('/api/stats')
+def stats(cert: str = 'EIP', store: APIStore = Depends(get_store)):
+    certification(cert)
+    return learning_stats(store, cert)
 
-@app.post("/api/quiz/submit")
-def submit_quiz(request: QuizSubmitRequest):
 
-    stored = quiz_store.get(
-        request.quiz_id
-    )
+@app.get('/api/weakness')
+def weakness(cert: str = 'EIP', store: APIStore = Depends(get_store)):
+    certification(cert)
+    return {'cert': cert, **learning_stats(store, cert)['weakness']}
 
-    if not stored:
-        raise HTTPException(
-            status_code=404,
-            detail="문제 정보를 찾을 수 없습니다."
-        )
 
-    cert = stored["cert"]
-    quiz = stored["quiz"]
+@app.get('/api/summary-notes')
+def get_summary_notes(cert: str = 'EIP', store: APIStore = Depends(get_store)):
+    certification(cert)
+    return summary_view(store, cert)
 
-    correct_answer = int(
-        quiz.get("answer", -1)
-    )
 
-    is_correct = (
-        request.selected_answer
-        == correct_answer
-    )
+@app.get('/api/question-bank/availability')
+def bank_availability(cert: str = 'EIP', store: APIStore = Depends(get_store)):
+    certification(cert)
+    return mock_exams.availability(store, cert)
 
-    topic = quiz.get(
-        "topic",
-        "알 수 없음"
-    )
 
-    # 기존 학습 기록 DB에 저장
-    db_manager.log_quiz_result(
-        cert,
-        topic,
-        is_correct
-    )
+@app.post('/api/mock-exams')
+def new_exam(request: ExamRequest, store: APIStore = Depends(get_store)):
+    certification(request.cert)
+    return mock_exams.create_exam(store, request.cert, [p.model_dump() for p in request.distribution], request.request_id)
 
-    return {
-        "is_correct": is_correct,
-        "selected_answer": request.selected_answer,
-        "correct_answer": correct_answer,
-        "explanation": quiz.get(
-            "explanation",
-            "해설이 없습니다."
-        ),
-    }
+
+@app.post('/api/mock-preparations')
+def prepare_exam(request: ExamRequest, store: APIStore = Depends(get_store)):
+    certification(request.cert)
+    result = mock_preparation.start(store,request.cert,[p.model_dump() for p in request.distribution],request.request_id)
+    if result['status'] in ('queued','running'):
+        mock_preparation.dispatch(store,request.request_id,get_engine)
+    return result
+
+
+@app.get('/api/mock-preparations/{request_id}')
+def preparation_status(request_id: str, store: APIStore = Depends(get_store)):
+    result = mock_preparation.view(store,request_id)
+    if result['status'] in ('queued','running'):
+        mock_preparation.dispatch(store,request_id,get_engine)
+    return result
+
+
+@app.get('/api/mock-exams/{exam_id}')
+def get_exam(exam_id: str, store: APIStore = Depends(get_store)):
+    return mock_exams.exam_view(store, exam_id)
+
+
+@app.put('/api/mock-exams/{exam_id}/answers/{item_id}')
+def put_exam_answer(exam_id: str, item_id: str, request: ExamAnswer, store: APIStore = Depends(get_store)):
+    return mock_exams.save_answer(store, exam_id, item_id, request.selected_answer)
+
+
+@app.post('/api/mock-exams/{exam_id}/submit')
+def finish_exam(exam_id: str, request: ExamSubmit, store: APIStore = Depends(get_store)):
+    return mock_exams.submit_exam(store, exam_id, request.confirm_unanswered)
+
+
+@app.post('/api/summary-notes')
+def create_summary_notes(request: SummaryRequest, store: APIStore = Depends(get_store)):
+    certification(request.cert)
+    return generate_summaries(store, request.cert, get_engine)
+
+
+def validate_quiz(quiz, config):
+    if not isinstance(quiz, dict) or quiz.get('is_fallback') or quiz.get('validation_failed'):
+        raise ValueError('Quiz generation did not succeed')
+    options = quiz.get('options')
+    if (not isinstance(options, list) or len(options) != config.get('option_count', 4)
+            or any(not isinstance(o, str) or not o.strip() for o in options)):
+        raise ValueError('Invalid options')
+    answer = quiz.get('answer')
+    if type(answer) is not int or not 1 <= answer <= len(options):
+        raise ValueError('Invalid answer')
+    for key in ('question', 'explanation'):
+        if not isinstance(quiz.get(key), str) or not quiz[key].strip():
+            raise ValueError(f'Missing {key}')
+    if quiz.get('topic') not in config['topics']:
+        raise ValueError('Invalid topic')
+
+
+@app.post('/api/quiz')
+def create_quiz(request: QuizRequest, store: APIStore = Depends(get_store)):
+    config = certification(request.cert)
+    focus = None
+    if request.mode == 'weakness':
+        analysis = learning_stats(store, request.cert)['weakness']
+        focus = analysis['focus']
+        if focus is None:
+            code = 'INSUFFICIENT_HISTORY' if analysis['status'] == 'insufficient_data' else 'NO_WEAK_TOPIC'
+            fail(409, code, analysis['message'])
+    try:
+        if focus:
+            quiz = get_engine().generate_advanced_quiz(
+                cert=request.cert, target_topic=focus['topic'], strict_subject=True)
+            if quiz.get('failure_code') == 'NO_SUBJECT_MATERIAL':
+                fail(422, 'NO_SUBJECT_MATERIAL', '해당 과목의 학습 자료가 부족해 문제를 생성할 수 없습니다.')
+            if quiz.get('topic') != focus['topic']:
+                raise ValueError('Generated quiz does not match the requested subject')
+        else:
+            quiz = get_engine().generate_advanced_quiz(cert=request.cert)
+        validate_quiz(quiz, config)
+    except HTTPException:
+        raise
+    except Exception:
+        LOG.exception('Quiz generation failed')
+        fail(502, 'QUIZ_GENERATION_FAILED', '문제를 생성하지 못했습니다. 다시 시도해 주세요.', True)
+    attempt_id = store.create_attempt(request.cert, quiz)
+    return dict(attempt_id=attempt_id, quiz_id=attempt_id, cert=request.cert, mode=request.mode,
+                question=quiz['question'], topic=quiz['topic'],
+                topic_label=config['topics'][quiz['topic']], options=quiz['options'],
+                code_block=quiz.get('code_block'), table_data=quiz.get('table_data'))
+
+
+@app.post('/api/quiz/submit')
+def submit_quiz(request: QuizSubmitRequest, store: APIStore = Depends(get_store)):
+    if not (request.attempt_id or request.quiz_id):
+        fail(422, 'INVALID_REQUEST', '풀이 ID가 필요합니다.')
+    if request.attempt_id and request.quiz_id and request.attempt_id != request.quiz_id:
+        fail(422, 'INVALID_REQUEST', '풀이 ID가 일치하지 않습니다.')
+    return store.submit(request.attempt_id or request.quiz_id, request.selected_answer)
