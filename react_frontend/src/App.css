@@ -1,4165 +1,1555 @@
 /* =========================================================
-
    기본 설정
-
 ========================================================= */
-
-
-
 * {
-
   box-sizing: border-box;
-
 }
 
-
-
-html,
-
-body,
-
-#root {
-
+html, body, #root {
   margin: 0;
-
   width: 100%;
-
   height: 100%;
-
 }
-
-
 
 body {
-
   margin: 0;
-
-
-
-  font-family:
-
-    Inter,
-
-    Pretendard,
-
-    -apple-system,
-
-    BlinkMacSystemFont,
-
-    "Segoe UI",
-
-    sans-serif;
-
+  font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-
-
-button,
-
-textarea {
-
+button, textarea {
   font: inherit;
-
 }
-
-
 
 button {
-
   cursor: pointer;
-
 }
-
-
-
-
 
 /* =========================================================
-
    Theme
-
 ========================================================= */
-
-
-
 .app.dark {
-
   --bg-main: #212121;
-
   --bg-sidebar: #171717;
-
-
-
   --bg-soft: #292929;
-
   --bg-hover: #323232;
-
   --bg-message: #303030;
-
   --bg-input: #2f2f2f;
-
-
-
   --border: #3a3a3a;
-
   --border-light: #444444;
-
-
-
   --text-main: #ececec;
-
   --text-secondary: #bfbfbf;
-
   --text-muted: #999999;
-
-
-
   --send-bg: #f2f2f2;
-
   --send-text: #111111;
-
 }
-
-
 
 .app.light {
-
   --bg-main: #ffffff;
-
   --bg-sidebar: #f7f7f8;
-
-
-
   --bg-soft: #eeeeee;
-
   --bg-hover: #e6e6e6;
-
   --bg-message: #f1f1f1;
-
   --bg-input: #f4f4f4;
-
-
-
   --border: #dddddd;
-
   --border-light: #d1d1d1;
-
-
-
   --text-main: #202123;
-
   --text-secondary: #444444;
-
   --text-muted: #767676;
-
-
-
   --send-bg: #202123;
-
   --send-text: #ffffff;
-
 }
 
-
-
-
-
 /* =========================================================
-
    전체 앱
-
 ========================================================= */
-
-
-
 .app {
-
   width: 100vw;
-
   height: 100vh;
-
-
-
   display: flex;
-
-
-
   background: var(--bg-main);
-
   color: var(--text-main);
-
-
-
   overflow: hidden;
-
-
-
-  transition:
-
-    background 0.2s ease,
-
-    color 0.2s ease;
-
+  transition: background 0.2s ease, color 0.2s ease;
 }
-
-
-
-
 
 /* =========================================================
-
    Sidebar
-
 ========================================================= */
-
-
-
 .sidebar {
-
   width: 260px;
-
   min-width: 260px;
-
   height: 100vh;
-
-
-
   padding: 14px;
-
-
-
   background: var(--bg-sidebar);
-
-
-
   border-right: 1px solid var(--border);
-
-
-
   display: flex;
-
   flex-direction: column;
-
   justify-content: space-between;
-
-
-
   overflow: hidden;
-
-
-
-  transition:
-
-    width 0.25s ease,
-
-    min-width 0.25s ease,
-
-    background 0.2s ease;
-
+  transition: width 0.25s ease, min-width 0.25s ease, background 0.2s ease;
 }
-
-
 
 .sidebar.collapsed {
-
   width: 72px;
-
   min-width: 72px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    Sidebar Header
-
 ========================================================= */
-
-
-
 .sidebar-header {
-
   min-height: 46px;
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
 }
-
-
 
 .logo {
-
   padding-left: 10px;
-
-
-
   font-size: 19px;
-
   font-weight: 700;
-
-
-
   white-space: nowrap;
-
 }
-
-
 
 .sidebar-toggle {
-
   width: 34px;
-
   height: 34px;
-
-
-
   border: none;
-
   border-radius: 8px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 24px;
-
   line-height: 1;
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
 }
-
-
 
 .sidebar-toggle:hover {
-
   background: var(--bg-soft);
-
 }
-
-
 
 .sidebar.collapsed .sidebar-header {
-
   justify-content: center;
-
 }
-
-
-
-
 
 /* =========================================================
-
    새 대화
-
 ========================================================= */
-
-
-
 .new-chat-button {
-
   width: 100%;
-
   height: 44px;
-
-
-
   margin-top: 10px;
-
   padding: 0 14px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 10px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-main);
-
-
-
   display: flex;
-
   align-items: center;
-
-
-
   gap: 10px;
-
-
-
   white-space: nowrap;
-
-
-
-  transition:
-
-    background 0.15s ease,
-
-    border-color 0.15s ease;
-
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
-
-
 
 .new-chat-button:hover {
-
   background: var(--bg-soft);
-
 }
-
-
 
 .sidebar.collapsed .new-chat-button {
-
   justify-content: center;
-
-
-
   padding: 0;
-
-
-
   gap: 0;
-
 }
-
-
-
-
 
 /* =========================================================
-
    Menu
-
 ========================================================= */
-
-
-
 .menu {
-
   margin-top: 22px;
-
-
-
   display: flex;
-
   flex-direction: column;
-
-
-
   gap: 4px;
-
 }
-
-
 
 .menu-item {
-
   width: 100%;
-
   height: 42px;
-
-
-
   padding: 0 12px;
-
-
-
   border: none;
-
   border-radius: 8px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-secondary);
-
-
-
   display: flex;
-
   align-items: center;
-
-
-
   gap: 12px;
-
-
-
   text-align: left;
-
-
-
   white-space: nowrap;
-
-
-
-  transition:
-
-    background 0.15s ease,
-
-    color 0.15s ease;
-
+  transition: background 0.15s ease, color 0.15s ease;
 }
-
-
 
 .menu-item:hover {
-
   background: var(--bg-hover);
-
   color: var(--text-main);
-
 }
-
-
 
 .menu-item.active {
-
   background: var(--bg-soft);
-
   color: var(--text-main);
-
 }
-
-
 
 .menu-icon {
-
   width: 18px;
-
-
-
   color: var(--text-muted);
-
-
-
   flex-shrink: 0;
-
-
-
   text-align: center;
-
 }
-
-
 
 .sidebar.collapsed .menu-item {
-
   justify-content: center;
-
-
-
   padding: 0;
-
-
-
   gap: 0;
-
 }
-
-
 
 .sidebar.collapsed .menu-icon {
-
   width: auto;
-
 }
-
-
-
-
 
 /* =========================================================
-
    Sidebar 하단 사용자
-
 ========================================================= */
-
-
-
 .sidebar-bottom {
-
   padding-top: 12px;
-
-
-
   border-top: 1px solid var(--border);
-
 }
-
-
 
 .sidebar-user-button {
-
   width: 100%;
-
-
-
   padding: 9px;
-
-
-
   border: none;
-
-
-
   border-radius: 9px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-main);
-
-
-
   display: flex;
-
   align-items: center;
-
-
-
   gap: 10px;
-
-
-
   text-align: left;
-
-
-
   white-space: nowrap;
-
-
-
-  transition:
-
-    background 0.15s ease;
-
+  transition: background 0.15s ease;
 }
-
-
 
 .sidebar-user-button:hover {
-
   background: var(--bg-soft);
-
 }
-
-
 
 .sidebar-user-button.active {
-
   background: var(--bg-soft);
-
 }
-
-
 
 .profile-circle {
-
   width: 34px;
-
   height: 34px;
-
   min-width: 34px;
-
-
-
   border-radius: 50%;
-
-
-
   background: var(--bg-soft);
-
-
-
   color: var(--text-main);
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-
-
   font-size: 13px;
-
 }
-
-
 
 .profile-info {
-
   min-width: 0;
-
 }
-
-
 
 .profile-name {
-
   font-size: 14px;
-
   font-weight: 600;
-
 }
-
-
 
 .profile-subtitle {
-
   margin-top: 2px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 11px;
-
 }
-
-
 
 .sidebar.collapsed .sidebar-user-button {
-
   justify-content: center;
-
-
-
   padding-left: 0;
-
   padding-right: 0;
-
 }
 
-
-
-
-
 /* =========================================================
-
    Main
-
 ========================================================= */
-
-
-
 .main {
-
   flex: 1;
-
-
-
   min-width: 0;
-
   height: 100vh;
-
-
-
   background: var(--bg-main);
-
-
-
   display: flex;
-
   flex-direction: column;
-
-
-
   position: relative;
-
-
-
   overflow: hidden;
-
-
-
-  transition:
-
-    background 0.2s ease;
-
+  transition: background 0.2s ease;
 }
-
-
-
-
 
 /* =========================================================
-
    Header
-
 ========================================================= */
-
-
-
 .header {
-
   height: 60px;
-
   min-height: 60px;
-
-
-
   padding: 0 24px;
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
 }
-
-
 
 .header-title {
-
   color: var(--text-secondary);
-
-
-
   font-size: 14px;
-
   font-weight: 600;
-
 }
-
-
 
 .theme-toggle {
-
   width: 38px;
-
   height: 38px;
-
-
-
   border: none;
-
   border-radius: 10px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 18px;
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-
-
-  transition:
-
-    background 0.15s ease,
-
-    transform 0.15s ease;
-
+  transition: background 0.15s ease, transform 0.15s ease;
 }
-
-
 
 .theme-toggle:hover {
-
   background: var(--bg-soft);
-
 }
-
-
 
 .theme-toggle:active {
-
   transform: scale(0.94);
-
 }
 
-
-
-
-
 /* =========================================================
-
    Chat
-
 ========================================================= */
-
-
-
 .chat-area {
-
   flex: 1;
-
-
-
   min-height: 0;
-
-
-
   overflow-y: auto;
-
-
-
   display: flex;
-
   justify-content: center;
-
 }
-
-
-
-
 
 /* =========================================================
-
    Welcome
-
 ========================================================= */
-
-
-
 .welcome {
-
   width: 90%;
-
   max-width: 680px;
-
-
-
   margin: auto;
-
-
-
   text-align: center;
-
-
-
   transform: translateY(-35px);
-
 }
-
-
 
 .welcome-logo {
-
   width: 48px;
-
   height: 48px;
-
-
-
   margin: 0 auto 22px;
-
-
-
   border: 1px solid var(--border-light);
-
   border-radius: 14px;
-
-
-
   color: var(--text-main);
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-
-
   font-size: 14px;
-
   font-weight: 700;
-
 }
-
-
 
 .welcome h1 {
-
   margin: 0;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 28px;
-
   font-weight: 600;
-
 }
-
-
 
 .welcome p {
-
   margin-top: 12px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 14px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    추천 질문
-
 ========================================================= */
-
-
-
 .suggestions {
-
   margin-top: 35px;
-
-
-
   display: grid;
-
-
-
-  grid-template-columns:
-
-    repeat(3, 1fr);
-
-
-
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-
 }
-
-
 
 .suggestions button {
-
   padding: 15px 12px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 12px;
-
-
-
   background: var(--bg-soft);
-
-
-
   color: var(--text-secondary);
-
-
-
   font-size: 13px;
-
-
-
-  transition:
-
-    background 0.15s ease,
-
-    transform 0.15s ease;
-
+  transition: background 0.15s ease, transform 0.15s ease;
 }
-
-
 
 .suggestions button:hover {
-
   background: var(--bg-hover);
-
-
-
   transform: translateY(-1px);
-
 }
-
-
-
-
 
 /* =========================================================
-
    Messages
-
 ========================================================= */
-
-
-
 .messages {
-
   width: 100%;
-
   max-width: 820px;
-
-
-
   padding: 30px 24px 40px;
-
 }
-
-
 
 .message-row {
-
   width: 100%;
-
-
-
   margin-bottom: 26px;
-
-
-
   display: flex;
-
   align-items: flex-start;
-
 }
 
-
-
-.message-row.user {
-
+.message-row\.user {
   justify-content: flex-end;
-
 }
 
-
-
-.message-row.assistant {
-
+.message-row\.assistant {
   justify-content: flex-start;
-
-
-
   gap: 12px;
-
 }
-
-
 
 .message {
-
   max-width: 78%;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 15px;
-
   line-height: 1.75;
-
-
-
   word-break: keep-all;
-
   overflow-wrap: anywhere;
-
 }
-
-
 
 .user .message {
-
   padding: 11px 16px;
-
-
-
   border-radius: 18px;
-
-
-
   background: var(--bg-message);
-
-
-
   white-space: pre-wrap;
-
 }
-
-
 
 .assistant .message {
-
   width: 100%;
-
-
-
   padding: 4px 0;
-
 }
-
-
 
 .assistant-avatar {
-
   width: 30px;
-
   height: 30px;
-
   min-width: 30px;
-
-
-
   border: 1px solid var(--border-light);
-
   border-radius: 50%;
-
-
-
   background: var(--bg-soft);
-
-
-
   color: var(--text-main);
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-
-
   font-size: 10px;
-
   font-weight: 700;
-
 }
-
-
-
-
 
 /* =========================================================
-
    Markdown
-
 ========================================================= */
-
-
-
 .assistant .message > *:first-child {
-
   margin-top: 0;
-
 }
-
-
 
 .assistant .message > *:last-child {
-
   margin-bottom: 0;
-
 }
 
-
-
-.message h1,
-
-.message h2,
-
-.message h3,
-
-.message h4 {
-
+.message h1, .message h2, .message h3, .message h4 {
   color: var(--text-main);
-
-
-
   font-weight: 700;
-
   line-height: 1.4;
-
 }
-
-
 
 .message h1 {
-
   margin: 28px 0 14px;
-
-
-
   font-size: 25px;
-
 }
-
-
 
 .message h2 {
-
   margin: 26px 0 13px;
-
-
-
   font-size: 22px;
-
 }
-
-
 
 .message h3 {
-
   margin: 24px 0 12px;
-
-
-
   font-size: 19px;
-
 }
-
-
 
 .message h4 {
-
   margin: 20px 0 10px;
-
-
-
   font-size: 17px;
-
 }
-
-
 
 .message p {
-
   margin: 10px 0;
-
-
-
   line-height: 1.8;
-
 }
-
-
 
 .message strong {
-
   color: var(--text-main);
-
-
-
   font-weight: 700;
-
 }
-
-
 
 .message em {
-
   color: var(--text-secondary);
-
 }
 
-
-
-.message ul,
-
-.message ol {
-
+.message ul, .message ol {
   margin: 12px 0;
-
-
-
   padding-left: 25px;
-
 }
-
-
 
 .message li {
-
   margin: 6px 0;
-
-
-
   line-height: 1.7;
-
 }
-
-
 
 .message blockquote {
-
   margin: 16px 0;
-
-
-
   padding: 4px 0 4px 14px;
-
-
-
-  border-left:
-
-    3px solid var(--border-light);
-
-
-
+  border-left: 3px solid var(--border-light);
   color: var(--text-secondary);
-
 }
-
-
 
 .message hr {
-
   margin: 24px 0;
-
-
-
   border: none;
-
   border-top: 1px solid var(--border);
-
 }
-
-
 
 .message code {
-
   padding: 2px 6px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 5px;
-
-
-
   background: var(--bg-soft);
-
-
-
-  font-family:
-
-    Consolas,
-
-    "Courier New",
-
-    monospace;
-
-
-
+  font-family: Consolas, "Courier New", monospace;
   font-size: 0.92em;
-
 }
-
-
 
 .message pre {
-
   margin: 16px 0;
-
-
-
   padding: 16px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 10px;
-
-
-
   background: var(--bg-soft);
-
-
-
   overflow-x: auto;
-
-
-
   line-height: 1.6;
-
 }
-
-
 
 .message pre code {
-
   padding: 0;
-
-
-
   border: none;
-
-
-
   background: transparent;
-
 }
-
-
 
 .message table {
-
   width: 100%;
-
-
-
   margin: 16px 0;
-
-
-
   border-collapse: collapse;
-
-
-
   font-size: 14px;
-
 }
 
-
-
-.message th,
-
-.message td {
-
+.message th, .message td {
   padding: 10px 12px;
-
-
-
   border: 1px solid var(--border);
-
-
-
   text-align: left;
-
   vertical-align: top;
-
 }
-
-
 
 .message th {
-
   background: var(--bg-soft);
-
 }
-
-
-
-
 
 /* =========================================================
-
    Input
-
 ========================================================= */
-
-
-
 .input-section {
-
   flex-shrink: 0;
-
-
-
   width: 100%;
-
-
-
   padding: 12px 30px 14px;
-
-
-
   background: var(--bg-main);
-
-
-
   position: relative;
-
-
-
   z-index: 10;
-
 }
-
-
 
 .answer-length-control {
-
   max-width: 780px;
-
-
-
   margin: 0 auto 9px;
-
-
-
   display: flex;
-
   justify-content: flex-end;
-
   align-items: center;
-
-
-
   gap: 6px;
-
 }
-
-
 
 .answer-length-label {
-
   margin-right: 4px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 12px;
-
-
-
   user-select: none;
-
 }
-
-
 
 .answer-length-control button {
-
   min-width: 58px;
-
-
-
   padding: 6px 12px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 18px;
-
-
-
   background: var(--bg-soft);
-
-
-
   color: var(--text-secondary);
-
-
-
   font-size: 12px;
-
-
-
-  transition:
-
-    background 0.15s ease,
-
-    color 0.15s ease,
-
-    transform 0.15s ease;
-
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
-
-
 
 .answer-length-control button:hover {
-
   background: var(--bg-hover);
-
-
-
   color: var(--text-main);
-
-
-
   transform: translateY(-1px);
-
 }
-
-
 
 .answer-length-control button.active {
-
   border-color: var(--send-bg);
-
-
-
   background: var(--send-bg);
-
-
-
   color: var(--send-text);
-
-
-
   font-weight: 600;
-
 }
-
-
 
 .input-container {
-
   max-width: 780px;
-
   min-height: 56px;
-
-
-
   margin: 0 auto;
-
-
-
   padding: 10px 10px 10px 20px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 28px;
-
-
-
   background: var(--bg-input);
-
-
-
   display: flex;
-
   align-items: flex-end;
-
 }
-
-
 
 .input-container:focus-within {
-
   border-color: var(--text-muted);
-
 }
-
-
 
 textarea {
-
   flex: 1;
-
-
-
   min-height: 34px;
-
   max-height: 130px;
-
-
-
   padding: 7px 10px 5px 0;
-
-
-
   resize: none;
-
-
-
   border: none;
-
   outline: none;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-main);
-
-
-
   line-height: 1.4;
-
 }
-
-
 
 textarea::placeholder {
-
   color: var(--text-muted);
-
 }
-
-
 
 .send-button {
-
   width: 36px;
-
   height: 36px;
-
   min-width: 36px;
-
-
-
   border: none;
-
   border-radius: 50%;
-
-
-
   background: var(--send-bg);
-
-
-
   color: var(--send-text);
-
-
-
   font-size: 20px;
-
   font-weight: bold;
-
-
-
-  transition:
-
-    opacity 0.15s ease,
-
-    transform 0.15s ease;
-
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-
-
 
 .send-button:disabled {
-
   opacity: 0.3;
-
-
-
   cursor: default;
-
 }
-
-
 
 .send-button:not(:disabled):hover {
-
   transform: scale(1.05);
-
 }
-
-
 
 .input-caption {
-
   max-width: 900px;
-
-
-
   margin: 9px auto 0;
-
-
-
   color: var(--text-muted);
-
-
-
   text-align: center;
-
-
-
   font-size: 10px;
-
   line-height: 1.25;
-
 }
-
-
 
 .input-caption p {
-
   margin: 2px 0;
-
 }
-
-
-
-
 
 /* =========================================================
-
    문제 풀이 페이지
-
 ========================================================= */
-
-
-
 .quiz-page {
-
   flex: 1;
-
-
-
   min-height: 0;
-
-
-
   padding: 30px 40px 60px;
-
-
-
   background: var(--bg-main);
-
-
-
   overflow-y: auto;
-
 }
-
-
 
 .quiz-header {
-
   width: 100%;
-
   max-width: 900px;
-
-
-
   margin: 0 auto 28px;
-
-
-
   display: flex;
-
   align-items: flex-end;
-
   justify-content: space-between;
-
-
-
   gap: 20px;
-
 }
-
-
 
 .quiz-page-label {
-
   display: inline-block;
-
-
-
   margin-bottom: 8px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 11px;
-
   font-weight: 700;
-
-
-
   letter-spacing: 1.5px;
-
 }
-
-
 
 .quiz-header h1 {
-
   margin: 0;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 28px;
-
 }
-
-
 
 .quiz-header p {
-
   margin: 8px 0 0;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 14px;
-
 }
-
-
 
 .quiz-new-button {
-
   flex-shrink: 0;
-
-
-
   padding: 9px 15px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 10px;
-
-
-
   background: var(--bg-soft);
-
-
-
   color: var(--text-main);
-
 }
-
-
 
 .quiz-new-button:hover:not(:disabled) {
-
   background: var(--bg-hover);
-
 }
-
-
 
 .quiz-new-button:disabled {
-
   opacity: 0.5;
-
-
-
   cursor: default;
-
 }
-
-
 
 .quiz-card {
-
   width: 100%;
-
   max-width: 900px;
-
-
-
   margin: 0 auto;
-
-
-
   padding: 30px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 18px;
-
-
-
   background: var(--bg-sidebar);
-
 }
-
-
 
 .quiz-meta {
-
   margin-bottom: 22px;
-
-
-
   display: flex;
-
-
-
   gap: 8px;
-
 }
-
-
 
 .quiz-meta span {
-
   padding: 5px 10px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 20px;
-
-
-
   background: var(--bg-soft);
-
-
-
   color: var(--text-secondary);
-
-
-
   font-size: 11px;
-
 }
-
-
 
 .quiz-question {
-
   margin: 0 0 25px;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 20px;
-
   line-height: 1.65;
-
-
-
   word-break: keep-all;
-
 }
-
-
 
 .quiz-code {
-
   margin: 20px 0;
-
-
-
   padding: 18px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 12px;
-
-
-
   background: var(--bg-main);
-
-
-
   color: var(--text-main);
-
-
-
   overflow-x: auto;
-
-
-
-  font-family:
-
-    Consolas,
-
-    "Courier New",
-
-    monospace;
-
-
-
+  font-family: Consolas, "Courier New", monospace;
   font-size: 13px;
-
   line-height: 1.6;
-
 }
-
-
 
 .quiz-table {
-
   margin: 20px 0;
-
-
-
   overflow-x: auto;
-
 }
-
-
 
 .quiz-table table {
-
   width: 100%;
-
-
-
   border-collapse: collapse;
-
 }
 
-
-
-.quiz-table th,
-
-.quiz-table td {
-
+.quiz-table th, .quiz-table td {
   padding: 10px 12px;
-
-
-
   border: 1px solid var(--border);
-
-
-
   color: var(--text-main);
-
-
-
   text-align: left;
-
 }
-
-
 
 .quiz-table th {
-
   background: var(--bg-soft);
-
 }
-
-
 
 .quiz-options {
-
   display: flex;
-
   flex-direction: column;
-
-
-
   gap: 10px;
-
 }
-
-
 
 .quiz-option {
-
   width: 100%;
-
   min-height: 58px;
-
-
-
   padding: 11px 16px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 12px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-main);
-
-
-
   display: flex;
-
   align-items: center;
-
-
-
   gap: 13px;
-
-
-
   text-align: left;
-
-
-
   line-height: 1.55;
-
-
-
-  transition:
-
-    background 0.15s ease,
-
-    border-color 0.15s ease,
-
-    transform 0.15s ease;
-
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
-
-
 
 .quiz-option:hover:not(:disabled) {
-
   background: var(--bg-soft);
-
-
-
   transform: translateY(-1px);
-
 }
-
-
 
 .quiz-option-number {
-
   width: 30px;
-
   height: 30px;
-
   min-width: 30px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 50%;
-
-
-
   color: var(--text-secondary);
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-
-
   font-size: 12px;
-
   font-weight: 600;
-
 }
-
-
 
 .quiz-option.selected {
-
   border-color: var(--text-secondary);
-
-
-
   background: var(--bg-soft);
-
 }
 
-
-
-.quiz-option.selected
-
-.quiz-option-number {
-
+.quiz-option.selected .quiz-option-number {
   border-color: var(--send-bg);
-
-
-
   background: var(--send-bg);
-
-
-
   color: var(--send-text);
-
 }
-
-
 
 .quiz-option.correct {
-
   border-color: #3fa66a;
-
-
-
-  background:
-
-    rgba(63, 166, 106, 0.12);
-
+  background: rgba(63, 166, 106, 0.12);
 }
 
-
-
-.quiz-option.correct
-
-.quiz-option-number {
-
+.quiz-option.correct .quiz-option-number {
   border-color: #3fa66a;
-
-
-
   background: #3fa66a;
-
-
-
   color: white;
-
 }
-
-
 
 .quiz-option.incorrect {
-
   border-color: #d95c5c;
-
-
-
-  background:
-
-    rgba(217, 92, 92, 0.12);
-
+  background: rgba(217, 92, 92, 0.12);
 }
 
-
-
-.quiz-option.incorrect
-
-.quiz-option-number {
-
+.quiz-option.incorrect .quiz-option-number {
   border-color: #d95c5c;
-
-
-
   background: #d95c5c;
-
-
-
   color: white;
-
 }
-
-
 
 .quiz-submit-area {
-
   margin-top: 24px;
-
-
-
   display: flex;
-
   justify-content: flex-end;
-
 }
 
-
-
-.quiz-submit-button,
-
-.quiz-next-button {
-
+.quiz-submit-button, .quiz-next-button {
   padding: 11px 22px;
-
-
-
   border: none;
-
   border-radius: 10px;
-
-
-
   background: var(--send-bg);
-
-
-
   color: var(--send-text);
-
-
-
   font-weight: 600;
-
 }
-
-
 
 .quiz-submit-button:disabled {
-
   opacity: 0.3;
-
-
-
   cursor: default;
-
 }
-
-
 
 .quiz-result {
-
   margin-top: 27px;
-
-
-
   padding-top: 24px;
-
-
-
   border-top: 1px solid var(--border);
-
 }
-
-
 
 .quiz-result-title {
-
   margin-bottom: 12px;
-
-
-
   font-size: 21px;
-
   font-weight: 700;
-
 }
-
-
 
 .quiz-result-title.success {
-
   color: #45b875;
-
 }
-
-
 
 .quiz-result-title.wrong {
-
   color: #e16666;
-
 }
-
-
 
 .quiz-correct-answer {
-
   color: var(--text-secondary);
-
-
-
   font-size: 14px;
-
 }
-
-
 
 .quiz-explanation {
-
   margin-top: 20px;
-
-
-
   padding: 20px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 12px;
-
-
-
   background: var(--bg-soft);
-
-
-
   color: var(--text-main);
-
-
-
   line-height: 1.8;
-
 }
-
-
 
 .quiz-explanation h3 {
-
   margin: 0 0 12px;
-
-
-
   font-size: 16px;
-
 }
-
-
 
 .quiz-next-button {
-
   margin-top: 20px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    문제 Loading / Error
-
 ========================================================= */
-
-
-
 .quiz-loading {
-
   width: 100%;
-
   max-width: 900px;
-
-
-
   margin: 100px auto 0;
-
-
-
   color: var(--text-main);
-
-
-
   text-align: center;
-
 }
-
-
 
 .quiz-loading-spinner {
-
   width: 32px;
-
   height: 32px;
-
-
-
   margin: 0 auto 18px;
-
-
-
   border: 3px solid var(--border);
-
   border-top-color: var(--text-main);
-
   border-radius: 50%;
-
-
-
-  animation:
-
-    quiz-spin 0.8s linear infinite;
-
+  animation: quiz-spin 0.8s linear infinite;
 }
-
-
 
 @keyframes quiz-spin {
-
   to {
-
     transform: rotate(360deg);
-
   }
-
 }
-
-
 
 .quiz-loading h3 {
-
   margin: 0 0 8px;
-
-
-
   font-size: 17px;
-
 }
-
-
 
 .quiz-loading p {
-
   color: var(--text-muted);
-
-
-
   font-size: 13px;
-
 }
-
-
 
 .quiz-error {
-
   width: 100%;
-
   max-width: 900px;
-
-
-
   margin: 30px auto;
-
-
-
   padding: 16px;
-
-
-
-  border:
-
-    1px solid rgba(217, 92, 92, 0.5);
-
-
-
+  border: 1px solid rgba(217, 92, 92, 0.5);
   border-radius: 10px;
-
-
-
-  background:
-
-    rgba(217, 92, 92, 0.1);
-
-
-
+  background: rgba(217, 92, 92, 0.1);
   color: #e16666;
-
 }
-
-
-
-
 
 /* =========================================================
-
    사용자 / 학습현황 페이지
-
 ========================================================= */
-
-
-
 .profile-page {
-
   flex: 1;
-
-
-
   min-height: 0;
-
-
-
   padding: 28px 44px 70px;
-
-
-
   background: var(--bg-main);
-
-
-
   overflow-y: auto;
-
 }
-
-
 
 .profile-content {
-
   width: 100%;
-
   max-width: 1120px;
-
-
-
   margin: 0 auto;
-
 }
-
-
-
-
 
 /* =========================================================
-
    Profile Header
-
 ========================================================= */
-
-
-
 .profile-page-header {
-
   margin-bottom: 26px;
-
 }
-
-
 
 .profile-page-label {
-
   display: inline-block;
-
-
-
   margin-bottom: 8px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 11px;
-
   font-weight: 700;
-
-
-
   letter-spacing: 1.5px;
-
 }
-
-
 
 .profile-page-header h1 {
-
   margin: 0;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 29px;
-
   font-weight: 700;
-
 }
-
-
 
 .profile-page-header p {
-
   margin: 8px 0 0;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 14px;
-
 }
 
-
-
-
-
 /* =========================================================
-
    학습 대시보드 공통 카드
-
 ========================================================= */
-
-
-
 .dashboard-card {
-
   width: 100%;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 16px;
 
-
-
   /*
-
-    주변 배경과 동일.
-
-    카드 배경은 흰색/별도색을 사용하지 않고
-
-    테두리로만 구분.
-
-  */
-
+      주변 배경과 동일.
+      카드 배경은 흰색/별도색을 사용하지 않고
+      테두리로만 구분.
+    */
   background: transparent;
-
-
-
   color: var(--text-main);
-
 }
-
-
 
 .dashboard-card-header {
-
   padding: 20px 22px 0;
-
 }
-
-
 
 .dashboard-small-label {
-
   display: block;
-
-
-
   margin-bottom: 7px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 10px;
-
   font-weight: 700;
-
-
-
   letter-spacing: 1.2px;
-
 }
-
-
 
 .dashboard-card-header h2 {
-
   margin: 0;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 19px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    취약점 분석
-
 ========================================================= */
-
-
-
 .weakness-card {
-
   width: 100%;
-
 }
-
-
 
 .radar-chart-wrapper {
-
   width: 100%;
-
   height: 400px;
-
-
-
   padding: 5px 20px 0;
-
 }
-
-
 
 .weakness-analysis {
-
   margin: 0 22px 20px;
-
-
-
   padding: 15px 3px 0;
-
-
-
   border-top: 1px solid var(--border);
-
-
-
   color: var(--text-secondary);
-
-
-
   font-size: 13px;
-
   line-height: 1.6;
-
 }
-
-
 
 .weakness-analysis strong {
-
   color: var(--text-main);
-
 }
-
-
 
 .analysis-icon {
-
   margin-right: 8px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    목표 / 전체 현황
-
 ========================================================= */
-
-
-
 .learning-summary-grid {
-
   width: 100%;
-
-
-
   margin-top: 16px;
-
-
-
   display: grid;
-
-
-
-  grid-template-columns:
-
-    minmax(0, 1.45fr)
-
-    minmax(340px, 1fr);
-
-
-
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 1fr);
   gap: 16px;
-
 }
-
-
 
 .summary-card {
-
   min-height: 220px;
-
-
-
   padding: 22px;
-
 }
-
-
 
 .summary-title {
-
   display: flex;
-
   align-items: center;
-
-
-
   gap: 10px;
-
 }
-
-
 
 .summary-title h2 {
-
   margin: 0;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 21px;
-
 }
-
-
 
 .summary-icon {
-
   font-size: 21px;
-
 }
-
-
 
 .summary-content {
-
   margin-top: 22px;
-
 }
-
-
 
 .summary-label {
-
   color: var(--text-secondary);
-
-
-
   font-size: 13px;
-
 }
-
-
 
 .summary-big-number {
-
   margin-top: 7px;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 35px;
-
   font-weight: 500;
-
 }
-
-
 
 .summary-big-number span {
-
   color: var(--text-secondary);
-
 }
-
-
 
 .goal-progress {
-
   width: 100%;
-
   height: 8px;
-
-
-
   margin-top: 24px;
-
-
-
   border-radius: 20px;
-
-
-
   background: var(--bg-soft);
-
-
-
   overflow: hidden;
-
 }
-
-
 
 .goal-progress-bar {
-
   height: 100%;
-
-
-
   border-radius: inherit;
-
-
-
   background: #3b9cff;
-
-
-
   transition: width 0.3s ease;
-
 }
-
-
 
 .summary-caption {
-
   margin-top: 11px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 11px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    전체 학습 현황
-
 ========================================================= */
-
-
-
 .total-stats {
-
   margin-top: 34px;
-
-
-
   display: grid;
-
-
-
-  grid-template-columns:
-
-    repeat(3, 1fr);
-
-
-
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-
 }
-
-
 
 .total-stat-item {
-
   min-width: 0;
-
 }
-
-
 
 .total-stat-item span {
-
   display: block;
-
-
-
   margin-bottom: 8px;
-
-
-
   color: var(--text-secondary);
-
-
-
   font-size: 12px;
-
-
-
   white-space: nowrap;
-
 }
-
-
 
 .total-stat-item strong {
-
   color: var(--text-main);
-
-
-
   font-size: 30px;
-
   font-weight: 500;
-
-
-
   white-space: nowrap;
-
 }
-
-
 
 .total-stat-item small {
-
   margin-left: 2px;
-
-
-
   font-size: 15px;
-
   font-weight: 400;
-
 }
-
-
-
-
 
 /* =========================================================
-
    자격증 설정
-
 ========================================================= */
-
-
-
 .cert-settings-section {
-
   margin-top: 44px;
-
-
-
   padding-top: 30px;
-
-
-
   border-top: 1px solid var(--border);
-
 }
-
-
 
 .cert-settings-header {
-
   margin-bottom: 17px;
-
 }
-
-
 
 .cert-settings-header h2 {
-
   margin: 0;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 21px;
-
 }
-
-
 
 .cert-settings-header p {
-
   margin: 7px 0 0;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 13px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    자격증 카드
-
 ========================================================= */
-
-
-
 .cert-grid {
-
   display: grid;
-
-
-
-  grid-template-columns:
-
-    repeat(2, minmax(0, 1fr));
-
-
-
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-
 }
-
-
 
 .cert-card {
-
   min-height: 175px;
-
-
-
   padding: 21px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 15px;
 
-
-
   /*
-
-    사용자 요청:
-
-    흰색 카드 대신 주변 배경과 동일.
-
-  */
-
+      사용자 요청:
+      흰색 카드 대신 주변 배경과 동일.
+    */
   background: transparent;
-
-
-
   color: var(--text-main);
-
-
-
   text-align: left;
-
-
-
   display: flex;
-
   flex-direction: column;
-
   justify-content: space-between;
-
-
-
-  transition:
-
-    background 0.15s ease,
-
-    border-color 0.15s ease,
-
-    transform 0.15s ease;
-
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
-
-
 
 .cert-card:hover {
-
   background: var(--bg-soft);
-
-
-
   transform: translateY(-2px);
-
 }
-
-
 
 .cert-card.selected {
 
   /*
-
-    선택 상태도 흰색으로 채우지 않고
-
-    테두리를 강조.
-
-  */
-
+      선택 상태도 흰색으로 채우지 않고
+      테두리를 강조.
+    */
   border-color: var(--text-secondary);
-
-
-
   background: transparent;
-
 }
-
-
 
 .cert-card-top {
-
   display: flex;
-
   align-items: flex-start;
-
   justify-content: space-between;
-
 }
-
-
 
 .cert-icon {
-
   width: 42px;
-
   height: 42px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 12px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-secondary);
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-
-
   font-size: 12px;
-
   font-weight: 700;
-
 }
-
-
 
 .cert-check {
-
   width: 27px;
-
   height: 27px;
-
-
-
   border-radius: 50%;
-
-
-
   background: var(--send-bg);
-
-
-
   color: var(--send-text);
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
-
-
   font-size: 12px;
-
   font-weight: 700;
-
 }
-
-
 
 .cert-card-content {
-
   margin-top: 18px;
-
 }
-
-
 
 .cert-card-content h3 {
-
   margin: 0 0 7px;
-
-
-
   color: var(--text-main);
-
-
-
   font-size: 17px;
-
 }
-
-
 
 .cert-card-content p {
-
   margin: 0;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 12px;
-
   line-height: 1.65;
-
 }
-
-
 
 .cert-card-footer {
-
   margin-top: 18px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 10px;
-
 }
-
-
-
-
 
 /* =========================================================
-
    현재 선택 자격증
-
 ========================================================= */
-
-
-
 .current-cert-box {
-
   margin-top: 14px;
-
-
-
   padding: 17px 19px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 13px;
-
-
-
   background: transparent;
-
-
-
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
-
-
   gap: 20px;
-
 }
-
-
 
 .current-cert-box span {
-
   display: block;
-
-
-
   margin-bottom: 4px;
-
-
-
   color: var(--text-muted);
-
-
-
   font-size: 10px;
-
 }
-
-
 
 .current-cert-box strong {
-
   color: var(--text-main);
-
-
-
   font-size: 14px;
-
 }
-
-
 
 .current-cert-status {
-
   padding: 5px 10px;
-
-
-
   border: 1px solid var(--border);
-
   border-radius: 20px;
-
-
-
   background: transparent;
-
-
-
   color: var(--text-secondary);
-
-
-
   font-size: 10px;
-
 }
 
-
-
-
-
 /* =========================================================
-
    Scrollbar
-
 ========================================================= */
-
-
-
-.chat-area::-webkit-scrollbar,
-
-.quiz-page::-webkit-scrollbar,
-
-.profile-page::-webkit-scrollbar {
-
+.chat-area::-webkit-scrollbar, .quiz-page::-webkit-scrollbar, .profile-page::-webkit-scrollbar {
   width: 8px;
-
 }
 
-
-
-.chat-area::-webkit-scrollbar-track,
-
-.quiz-page::-webkit-scrollbar-track,
-
-.profile-page::-webkit-scrollbar-track {
-
+.chat-area::-webkit-scrollbar-track, .quiz-page::-webkit-scrollbar-track, .profile-page::-webkit-scrollbar-track {
   background: transparent;
-
 }
 
-
-
-.chat-area::-webkit-scrollbar-thumb,
-
-.quiz-page::-webkit-scrollbar-thumb,
-
-.profile-page::-webkit-scrollbar-thumb {
-
+.chat-area::-webkit-scrollbar-thumb, .quiz-page::-webkit-scrollbar-thumb, .profile-page::-webkit-scrollbar-thumb {
   border-radius: 10px;
-
-
-
   background: var(--border);
-
 }
-
-
-
-
 
 /* =========================================================
-
    Responsive
-
 ========================================================= */
-
-
-
 @media (max-width: 900px) {
-
   .sidebar:not(.collapsed) {
-
     width: 210px;
-
     min-width: 210px;
-
   }
-
-
 
   .sidebar.collapsed {
-
     width: 68px;
-
     min-width: 68px;
-
   }
-
-
 
   .learning-summary-grid {
-
     grid-template-columns: 1fr;
-
   }
-
-
 
   .cert-grid {
-
     grid-template-columns: 1fr;
-
   }
-
-
 
   .radar-chart-wrapper {
-
     height: 360px;
-
   }
-
 }
-
-
-
-
 
 @media (max-width: 800px) {
-
   .suggestions {
-
     grid-template-columns: 1fr;
-
   }
-
-
 
   .welcome {
-
     max-width: 520px;
-
   }
-
-
 
   .message {
-
     max-width: 85%;
-
   }
-
-
 
   .quiz-page {
-
     padding: 24px 20px 50px;
-
   }
-
-
 
   .quiz-card {
-
     padding: 22px;
-
   }
-
-
 
   .quiz-header {
-
     align-items: flex-start;
-
     flex-direction: column;
-
   }
-
-
 
   .profile-page {
-
-    padding:
-
-      26px 22px 60px;
-
+    padding: 26px 22px 60px;
   }
-
 }
 
-
-
-
-
 @media (max-width: 620px) {
-
   .sidebar {
-
     display: none;
-
   }
-
-
 
   .header {
-
     padding-left: 16px;
-
     padding-right: 16px;
-
   }
-
-
 
   .input-section {
-
     padding-left: 12px;
-
     padding-right: 12px;
-
   }
-
-
 
   .messages {
-
     padding-left: 16px;
-
     padding-right: 16px;
-
   }
-
-
 
   .message {
-
     max-width: 92%;
-
   }
-
-
 
   .answer-length-control {
-
     justify-content: center;
-
   }
-
-
 
   .answer-length-label {
-
     display: none;
-
   }
-
-
 
   .quiz-page {
-
     padding-left: 14px;
-
     padding-right: 14px;
-
   }
-
-
 
   .quiz-card {
-
     padding: 18px;
-
   }
-
-
 
   .quiz-question {
-
     font-size: 18px;
-
   }
-
-
 
   .profile-page {
-
     padding-left: 14px;
-
     padding-right: 14px;
-
   }
-
-
 
   .profile-page-header h1 {
-
     font-size: 25px;
-
   }
-
-
 
   .radar-chart-wrapper {
-
     height: 300px;
-
-
-
     padding-left: 0;
-
     padding-right: 0;
-
   }
-
-
 
   .summary-card {
-
     min-height: auto;
-
   }
-
-
 
   .total-stats {
-
     gap: 8px;
-
   }
-
-
 
   .total-stat-item span {
-
     white-space: normal;
-
   }
-
-
 
   .total-stat-item strong {
-
     font-size: 23px;
-
   }
-
 }
 
 /* =========================================================
@@ -4171,10 +1561,7 @@ textarea::placeholder {
 
 /* -------------------- 사용자 페이지 상단 -------------------- */
 .profile-page {
-  padding:
-    clamp(10px, 1.4vh, 18px)
-    clamp(20px, 3vw, 38px)
-    clamp(14px, 1.8vh, 24px);
+  padding: clamp(10px, 1.4vh, 18px) clamp(20px, 3vw, 38px) clamp(14px, 1.8vh, 24px);
 }
 
 .profile-content {
@@ -4216,10 +1603,7 @@ textarea::placeholder {
   color: #e16666;
   font-size: 11px;
   font-weight: 600;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 .learning-reset-button:hover {
@@ -4230,9 +1614,7 @@ textarea::placeholder {
 
 /* -------------------- 취약점 분석 압축 -------------------- */
 .dashboard-card-header {
-  padding:
-    clamp(11px, 1.25vh, 16px)
-    17px 0;
+  padding: clamp(11px, 1.25vh, 16px) 17px 0;
 }
 
 .dashboard-small-label {
@@ -4250,9 +1632,7 @@ textarea::placeholder {
 }
 
 .weakness-analysis {
-  margin:
-    0 17px
-    clamp(9px, 1.2vh, 13px);
+  margin: 0 17px clamp(9px, 1.2vh, 13px);
   padding: clamp(7px, 1vh, 10px) 2px 0;
   font-size: 10px;
   line-height: 1.45;
@@ -4548,15 +1928,11 @@ textarea::placeholder {
   margin-bottom: 0;
 }
 
-.quiz-explanation-side h1,
-.quiz-explanation-side h2,
-.quiz-explanation-side h3,
-.quiz-explanation-side h4 {
+.quiz-explanation-side h1, .quiz-explanation-side h2, .quiz-explanation-side h3, .quiz-explanation-side h4 {
   line-height: 1.4;
 }
 
-.quiz-explanation-side ul,
-.quiz-explanation-side ol {
+.quiz-explanation-side ul, .quiz-explanation-side ol {
   padding-left: 22px;
 }
 
@@ -4612,8 +1988,1926 @@ textarea::placeholder {
     height: 260px;
   }
 
-  .summary-card,
-  .cert-card {
+  .summary-card, .cert-card {
     height: auto;
+  }
+}
+
+/* =========================================================
+   취약점 집중 학습 페이지 - 컴팩트 버전
+========================================================= */
+.weakness-page {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 28px 32px;
+  background: var(--bg-main);
+  overflow-y: auto;
+}
+
+.weakness-page-content {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.weakness-page-header {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.weakness-page-label, .weakness-panel-kicker {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.weakness-page-header h1 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 25px;
+}
+
+.weakness-page-header p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.weakness-sample-badge {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+/* 상단 요약 카드 2개 */
+.weakness-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.85fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.weakness-panel, .weakness-practice-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-main);
+}
+
+.weakness-panel {
+  padding: 16px 17px;
+}
+
+.weakness-focus-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.weakness-focus-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.weakness-focus-top h2, .weakness-ranking-panel h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 18px;
+}
+
+.weakness-status-chip {
+  flex-shrink: 0;
+  padding: 5px 8px;
+  border: 1px solid rgba(224, 163, 88, 0.5);
+  border-radius: 18px;
+  background: rgba(224, 163, 88, 0.08);
+  color: #e0a358;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.weakness-focus-description {
+  margin: 9px 0 11px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.weakness-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.weakness-score-row span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.weakness-score-row strong {
+  font-size: 16px;
+}
+
+.weakness-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 20px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.weakness-progress-value {
+  height: 100%;
+  border-radius: inherit;
+  background: #e0a358;
+}
+
+/* 취약 영역 순위 */
+.weakness-ranking-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weakness-ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.weakness-rank-number {
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.weakness-rank-topic {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.weakness-rank-topic strong {
+  font-size: 11px;
+}
+
+.weakness-rank-topic span {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+/* 집중 문제 */
+.weakness-practice-card {
+  padding: 17px 18px 18px;
+}
+
+.weakness-practice-header {
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.weakness-practice-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.weakness-practice-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.weakness-practice-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.weakness-practice-tags span {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.weakness-question-area {
+  padding-top: 13px;
+}
+
+.weakness-question-area > h3 {
+  margin: 0 0 11px;
+  color: var(--text-main);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.weakness-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weakness-option {
+  width: 100%;
+  min-height: 46px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  line-height: 1.45;
+  font-size: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.weakness-option:hover:not(:disabled) {
+  background: var(--bg-soft);
+}
+
+.weakness-option-number {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.weakness-option.selected {
+  border-color: var(--text-secondary);
+  background: var(--bg-soft);
+}
+
+.weakness-option.selected .weakness-option-number {
+  border-color: var(--send-bg);
+  background: var(--send-bg);
+  color: var(--send-text);
+}
+
+.weakness-option.correct {
+  border-color: #3fa66a;
+  background: rgba(63, 166, 106, 0.12);
+}
+
+.weakness-option.correct .weakness-option-number {
+  border-color: #3fa66a;
+  background: #3fa66a;
+  color: white;
+}
+
+.weakness-option.incorrect {
+  border-color: #d95c5c;
+  background: rgba(217, 92, 92, 0.12);
+}
+
+.weakness-option.incorrect .weakness-option-number {
+  border-color: #d95c5c;
+  background: #d95c5c;
+  color: white;
+}
+
+.weakness-submit-area {
+  margin-top: 11px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.weakness-submit-button, .weakness-retry-button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 8px;
+  background: var(--send-bg);
+  color: var(--send-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.weakness-submit-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.weakness-result {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.weakness-result-title {
+  margin-bottom: 8px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.weakness-result-title.success {
+  color: #45b875;
+}
+
+.weakness-result-title.wrong {
+  color: #e16666;
+}
+
+.weakness-explanation {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.weakness-explanation h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.weakness-explanation p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.weakness-retry-button {
+  margin-top: 10px;
+}
+
+.weakness-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.weakness-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.weakness-page::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+/* 노트북 높이에서는 조금 더 압축 */
+@media (max-height: 800px) and (min-width: 901px) {
+  .weakness-page {
+    padding-top: 10px;
+    padding-bottom: 18px;
+  }
+
+  .weakness-page-header {
+    margin-bottom: 8px;
+  }
+
+  .weakness-panel {
+    padding: 13px 15px;
+  }
+
+  .weakness-focus-description {
+    margin: 6px 0 8px;
+  }
+
+  .weakness-ranking-list {
+    margin-top: 7px;
+    gap: 4px;
+  }
+
+  .weakness-ranking-item {
+    padding: 5px 8px;
+  }
+
+  .weakness-practice-card {
+    padding: 14px 16px;
+  }
+
+  .weakness-question-area {
+    padding-top: 10px;
+  }
+
+  .weakness-option {
+    min-height: 41px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 900px) {
+  .weakness-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 800px) {
+  .weakness-page {
+    padding: 18px 16px 30px;
+  }
+
+  .weakness-page-header, .weakness-practice-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .weakness-practice-tags {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .weakness-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .weakness-panel, .weakness-practice-card {
+    padding: 14px;
+  }
+
+  .weakness-focus-top {
+    flex-direction: column;
+  }
+}
+
+/* =========================================================
+   오답노트 / 취약점 기반 요약 노트
+========================================================= */
+.wrongnote-page {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 28px 32px;
+  background: var(--bg-main);
+  overflow-y: auto;
+}
+
+.wrongnote-content {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.wrongnote-header {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.wrongnote-page-label, .wrongnote-section-kicker, .wrongnote-card-label {
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.wrongnote-page-label {
+  margin-bottom: 5px;
+}
+
+.wrongnote-header h1 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 25px;
+}
+
+.wrongnote-header p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.wrongnote-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.wrongnote-sample-badge, .wrongnote-cert-chip {
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  white-space: nowrap;
+}
+
+.wrongnote-download-button {
+  padding: 7px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 9px;
+  background: var(--send-bg);
+  color: var(--send-text);
+  font-size: 10px;
+  font-weight: 700;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.wrongnote-download-button:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+.wrongnote-focus-section {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+}
+
+.wrongnote-section-heading {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wrongnote-section-heading h2 {
+  margin: 3px 0 0;
+  color: var(--text-main);
+  font-size: 17px;
+}
+
+.wrongnote-top-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wrongnote-top-item {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wrongnote-top-rank {
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.wrongnote-top-info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wrongnote-top-info strong {
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wrongnote-top-info span {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.wrongnote-top-score {
+  color: #e0a358;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.wrongnote-note-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.wrongnote-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-main);
+}
+
+.wrongnote-card-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.wrongnote-card-number {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.wrongnote-card-label {
+  margin-bottom: 2px;
+  font-size: 8px;
+}
+
+.wrongnote-card-header h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wrongnote-card-accuracy {
+  padding: 4px 7px;
+  border: 1px solid rgba(224, 163, 88, 0.45);
+  border-radius: 16px;
+  background: rgba(224, 163, 88, 0.08);
+  color: #e0a358;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.wrongnote-card-section {
+  margin-top: 11px;
+}
+
+.wrongnote-card-section h3 {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.wrongnote-concepts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.wrongnote-concepts span {
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.wrongnote-mistake-list {
+  margin: 0;
+  padding-left: 17px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.wrongnote-mistake-list li {
+  margin: 4px 0;
+}
+
+.wrongnote-memory-box {
+  margin-top: 11px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.wrongnote-memory-box > span {
+  color: #e0a358;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.wrongnote-memory-box p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.wrongnote-footer-guide {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.wrongnote-footer-guide > span {
+  margin-right: 7px;
+  color: var(--text-secondary);
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+.wrongnote-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.wrongnote-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wrongnote-page::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+@media (max-height: 800px) and (min-width: 901px) {
+  .wrongnote-page {
+    padding-top: 10px;
+    padding-bottom: 18px;
+  }
+
+  .wrongnote-header {
+    margin-bottom: 8px;
+  }
+
+  .wrongnote-focus-section {
+    padding: 11px 13px;
+  }
+
+  .wrongnote-note-grid {
+    margin-top: 8px;
+    gap: 8px;
+  }
+
+  .wrongnote-card {
+    padding: 12px;
+  }
+
+  .wrongnote-card-section {
+    margin-top: 8px;
+  }
+
+  .wrongnote-memory-box {
+    margin-top: 8px;
+    padding: 7px 9px;
+  }
+
+  .wrongnote-footer-guide {
+    margin-top: 7px;
+  }
+}
+
+@media (max-width: 1050px) {
+  .wrongnote-note-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wrongnote-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 800px) {
+  .wrongnote-page {
+    padding: 18px 16px 30px;
+  }
+
+  .wrongnote-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wrongnote-header-actions {
+    justify-content: space-between;
+  }
+
+  .wrongnote-top-grid, .wrongnote-note-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wrongnote-card:last-child {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .wrongnote-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .wrongnote-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wrongnote-download-button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   모의고사
+========================================================= */
+.mock-page {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 28px 34px;
+  background: var(--bg-main);
+  overflow-y: auto;
+}
+
+.mock-content {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.mock-page-header, .mock-exam-header {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.mock-page-label {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.mock-page-header h1, .mock-exam-header h1 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 25px;
+}
+
+.mock-page-header p, .mock-exam-header p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mock-sample-badge {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.mock-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+  gap: 12px;
+}
+
+.mock-setup-card, .mock-question-card, .mock-navigator-card, .mock-score-card, .mock-subject-result-card, .mock-review-section {
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: transparent;
+}
+
+.mock-setup-card {
+  min-height: 390px;
+  padding: 18px;
+}
+
+.mock-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mock-card-heading > span {
+  width: 29px;
+  height: 29px;
+  min-width: 29px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.mock-card-heading h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 17px;
+}
+
+.mock-card-heading p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.mock-subject-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mock-subject-option {
+  width: 100%;
+  min-height: 49px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font-size: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.mock-subject-option:hover {
+  background: var(--bg-soft);
+}
+
+.mock-subject-option.selected {
+  border-color: var(--text-muted);
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
+.mock-checkbox {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--send-text);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.mock-subject-option.selected .mock-checkbox {
+  border-color: var(--send-bg);
+  background: var(--send-bg);
+}
+
+.mock-count-options {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mock-count-options button {
+  min-width: 0;
+  padding: 10px 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.mock-count-options button:hover {
+  background: var(--bg-soft);
+}
+
+.mock-count-options button.selected {
+  border-color: var(--send-bg);
+  background: var(--send-bg);
+  color: var(--send-text);
+}
+
+.mock-count-options strong {
+  font-size: 15px;
+}
+
+.mock-count-options span {
+  font-size: 8px;
+}
+
+.mock-setup-summary {
+  margin-top: 18px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mock-setup-summary div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mock-setup-summary span {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.mock-setup-summary strong {
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-start-button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--send-bg);
+  color: var(--send-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mock-start-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.mock-setup-caption {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+/* 시험 진행 */
+.mock-exam-progress-info {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.mock-exam-progress-info strong {
+  color: var(--text-main);
+  font-size: 16px;
+}
+
+.mock-exam-progress-info span {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.mock-progress-track {
+  width: 100%;
+  height: 4px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.mock-progress-value {
+  height: 100%;
+  border-radius: inherit;
+  background: #4da3ff;
+  transition: width 0.2s ease;
+}
+
+.mock-exam-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 12px;
+  align-items: start;
+}
+
+.mock-question-card {
+  min-width: 0;
+  padding: 20px;
+}
+
+.mock-question-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mock-question-meta span {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.mock-question-number {
+  margin-top: 18px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.mock-question-card > h2 {
+  margin: 7px 0 18px;
+  color: var(--text-main);
+  font-size: 18px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.mock-answer-options {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mock-answer-option {
+  width: 100%;
+  min-height: 52px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+}
+
+.mock-answer-option:hover {
+  background: var(--bg-soft);
+}
+
+.mock-answer-option.selected {
+  border-color: var(--text-secondary);
+  background: var(--bg-soft);
+}
+
+.mock-answer-option > span {
+  width: 27px;
+  height: 27px;
+  min-width: 27px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mock-answer-option.selected > span {
+  border-color: var(--send-bg);
+  background: var(--send-bg);
+  color: var(--send-text);
+}
+
+.mock-answer-option p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mock-question-actions {
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mock-primary-button, .mock-secondary-button {
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mock-primary-button {
+  border: 1px solid var(--send-bg);
+  background: var(--send-bg);
+  color: var(--send-text);
+}
+
+.mock-secondary-button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.mock-secondary-button:hover:not(:disabled) {
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
+.mock-secondary-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.mock-navigator-card {
+  position: sticky;
+  top: 0;
+  padding: 15px;
+}
+
+.mock-navigator-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mock-navigator-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.mock-navigator-header > span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.mock-question-map {
+  margin-top: 13px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.mock-question-map button {
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mock-question-map button.answered {
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
+.mock-question-map button.current {
+  border-color: #4da3ff;
+  box-shadow: inset 0 0 0 1px #4da3ff;
+  color: var(--text-main);
+}
+
+.mock-map-legend {
+  margin-top: 13px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mock-map-legend span, .mock-review-legend span {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+}
+
+.mock-map-legend i, .mock-review-legend i {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.mock-map-legend i.current {
+  border-color: #4da3ff;
+  background: #4da3ff;
+}
+
+.mock-map-legend i.answered {
+  background: var(--text-muted);
+}
+
+.mock-navigator-footer {
+  margin-top: 13px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.mock-navigator-footer span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.mock-navigator-footer button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mock-navigator-footer button:hover {
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
+/* 제출 확인 */
+.mock-submit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mock-submit-modal {
+  width: min(430px, 100%);
+  padding: 22px;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  background: var(--bg-sidebar);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3);
+}
+
+.mock-submit-modal h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.mock-submit-modal > p {
+  margin: 7px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.mock-submit-stats {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.mock-submit-stats div {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.mock-submit-stats span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.mock-submit-stats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.mock-submit-warning {
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(224, 163, 88, 0.4);
+  border-radius: 9px;
+  background: rgba(224, 163, 88, 0.08);
+  color: #e0a358;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.mock-submit-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+/* 결과 */
+.mock-result-header {
+  align-items: center;
+}
+
+.mock-result-actions {
+  display: flex;
+  gap: 7px;
+}
+
+.mock-result-grid {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.mock-score-card, .mock-subject-result-card {
+  padding: 17px;
+}
+
+.mock-score-card {
+  text-align: center;
+}
+
+.mock-score-circle {
+  width: 112px;
+  height: 112px;
+  margin: 8px auto 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 50%;
+  background: var(--bg-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.mock-score-circle strong {
+  font-size: 39px;
+  font-weight: 600;
+}
+
+.mock-score-circle span {
+  margin-top: 15px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.mock-score-card h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.mock-score-card > p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.mock-score-mini-stats {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.mock-score-mini-stats span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.mock-score-mini-stats strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 15px;
+}
+
+.mock-result-section-heading, .mock-review-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mock-result-section-heading h2, .mock-review-header h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.mock-result-section-heading > span {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.mock-subject-results {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mock-subject-result-row {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.mock-subject-result-text {
+  min-width: 0;
+}
+
+.mock-subject-result-text strong {
+  display: block;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-subject-result-text span {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.mock-result-bar {
+  height: 6px;
+  border-radius: 20px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.mock-result-bar div {
+  height: 100%;
+  border-radius: inherit;
+  background: #4da3ff;
+}
+
+.mock-review-section {
+  margin-top: 12px;
+  padding: 17px;
+}
+
+.mock-review-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.mock-review-legend {
+  display: flex;
+  gap: 10px;
+}
+
+.mock-review-legend i.correct {
+  border-color: #45b875;
+  background: #45b875;
+}
+
+.mock-review-legend i.wrong {
+  border-color: #e16666;
+  background: #e16666;
+}
+
+.mock-review-layout {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: minmax(250px, 0.65fr) minmax(0, 1.35fr);
+  gap: 12px;
+}
+
+.mock-review-map {
+  align-content: start;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.mock-review-map button {
+  min-height: 44px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.mock-review-map button.correct {
+  border-color: rgba(69, 184, 117, 0.5);
+}
+
+.mock-review-map button.wrong {
+  border-color: rgba(225, 102, 102, 0.5);
+}
+
+.mock-review-map button.selected {
+  background: var(--bg-soft);
+  box-shadow: inset 0 0 0 1px var(--text-muted);
+}
+
+.mock-review-map button span {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mock-review-map button small {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.mock-review-map button.correct small {
+  color: #45b875;
+}
+
+.mock-review-map button.wrong small {
+  color: #e16666;
+}
+
+.mock-review-detail {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg-soft);
+}
+
+.mock-review-detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mock-review-detail-top span {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.mock-review-detail-top strong {
+  color: var(--text-main);
+  font-size: 10px;
+}
+
+.mock-review-detail h3 {
+  margin: 8px 0 11px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mock-review-answer-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+
+.mock-review-answer-row div {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-main);
+}
+
+.mock-review-answer-row span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.mock-review-answer-row strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.mock-review-explanation {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.mock-review-explanation > span {
+  color: #4da3ff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.mock-review-explanation p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.mock-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mock-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mock-page::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+@media (max-height: 800px) and (min-width: 951px) {
+  .mock-page {
+    padding-top: 10px;
+    padding-bottom: 18px;
+  }
+
+  .mock-page-header, .mock-exam-header {
+    margin-bottom: 9px;
+  }
+
+  .mock-setup-card {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .mock-subject-list {
+    margin-top: 11px;
+    gap: 5px;
+  }
+
+  .mock-subject-option {
+    min-height: 42px;
+  }
+
+  .mock-question-card {
+    padding: 16px;
+  }
+
+  .mock-answer-option {
+    min-height: 46px;
+  }
+
+  .mock-score-card, .mock-subject-result-card, .mock-review-section {
+    padding: 14px;
+  }
+
+  .mock-score-circle {
+    width: 90px;
+    height: 90px;
+  }
+
+  .mock-score-circle strong {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 950px) {
+  .mock-setup-grid, .mock-exam-workspace, .mock-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-navigator-card {
+    position: static;
+  }
+
+  .mock-question-map {
+    grid-template-columns: repeat(10, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .mock-page {
+    padding: 18px 16px 30px;
+  }
+
+  .mock-page-header, .mock-exam-header, .mock-result-header, .mock-review-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mock-result-actions {
+    width: 100%;
+  }
+
+  .mock-result-actions button {
+    flex: 1;
+  }
+
+  .mock-review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-count-options {
+    grid-template-columns: repeat(5, minmax(52px, 1fr));
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .mock-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .mock-question-map {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .mock-setup-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-subject-result-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .mock-review-map {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
