@@ -19,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      navigate('/');
+      navigate('/learn'); // 로그인하면 학습 화면으로
     } catch (e) {
       setError(e.message);
     } finally {
@@ -28,7 +28,7 @@ export default function LoginPage() {
   };
 
   const onKeyDown = (e) => {
-    if (e.key === 'Enter') handleLogin();
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleLogin();
   };
 
   return (

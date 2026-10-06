@@ -1,0 +1,311 @@
+/* ── 홈 화면 전용 스타일 ── */
+.hp {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+/* 첫 화면 */
+.hp-hero {
+  text-align: center;
+  padding: 4.5rem 0 3rem;
+}
+
+.hp-eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.hp-title {
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+  margin: 0 0 1rem;
+}
+
+.hp-desc {
+  color: var(--muted);
+  font-size: 1.075rem;
+  line-height: 1.8;
+  max-width: 560px;
+  margin: 0 auto 2rem;
+}
+
+.hp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+/* 튜터 대화 미리보기 */
+.hp-preview {
+  max-width: 720px;
+  margin: 1rem auto 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.5);
+}
+
+.hp-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.hp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.hp-preview-title {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.hp-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  text-align: left;
+}
+
+.hp-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.hp-chip {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.hp-chip.is-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.hp-bubble {
+  max-width: 85%;
+  padding: 0.8rem 1rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.hp-bubble.user {
+  align-self: flex-end;
+  background: var(--surface-2);
+  border-bottom-right-radius: 4px;
+}
+
+.hp-bubble.tutor {
+  align-self: flex-start;
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+}
+
+.hp-bubble-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.hp-input {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.hp-input span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.hp-input b {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.9rem;
+}
+
+/* 공통 섹션 */
+.hp-section {
+  padding-top: 5rem;
+}
+
+.hp-section-head {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.hp-section-head h2 {
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.hp-section-head p {
+  color: var(--muted);
+  margin: 0;
+}
+
+/* 카드 */
+.hp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.hp-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.4rem;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.hp-card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+.hp-card-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.hp-card h3 {
+  font-size: 1.05rem;
+  margin: 0.6rem 0 0.4rem;
+}
+
+.hp-card p {
+  color: var(--muted);
+  font-size: 0.93rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* 자격증 소개 */
+.hp-certs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.9rem;
+}
+
+.hp-cert {
+  padding: 1.6rem;
+}
+
+.hp-cert h3 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.hp-cert-stats {
+  display: flex;
+  gap: 2rem;
+  margin: 1.1rem 0 1.25rem;
+}
+
+.hp-stat strong {
+  display: block;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.hp-stat span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.hp-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* 이용 방법 */
+.hp-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.9rem;
+}
+
+.hp-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* 마지막 시작 버튼 */
+.hp-cta {
+  margin: 5rem 0 2rem;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 3rem 1.5rem;
+}
+
+.hp-cta h2 {
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.hp-cta p {
+  color: var(--muted);
+  margin: 0 0 1.75rem;
+}
+
+/* 모바일 */
+@media (max-width: 760px) {
+  .hp-hero { padding: 2.5rem 0 2rem; }
+  .hp-section { padding-top: 3.5rem; }
+  .hp-steps { grid-template-columns: 1fr; }
+  .hp-bubble { max-width: 100%; }
+}

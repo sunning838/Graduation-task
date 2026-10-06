@@ -31,7 +31,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(form.name.trim(), form.email.trim(), form.password);
-      navigate('/');
+      navigate('/learn'); // 가입하면 학습 화면으로
     } catch (e) {
       setError(e.message);
     } finally {
@@ -40,7 +40,7 @@ export default function SignupPage() {
   };
 
   const onKeyDown = (e) => {
-    if (e.key === 'Enter') handleSignup();
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSignup();
   };
 
   return (
