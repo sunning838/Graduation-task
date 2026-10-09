@@ -425,11 +425,11 @@ button {
   align-items: flex-start;
 }
 
-.message-row\.user {
+.message-row.user {
   justify-content: flex-end;
 }
 
-.message-row\.assistant {
+.message-row.assistant {
   justify-content: flex-start;
   gap: 12px;
 }
@@ -3934,3 +3934,158 @@ textarea::placeholder {
 .summary-markdown h3 { margin-top: 1.5em; }
 .summary-markdown pre { overflow-x: auto; }
 .summary-markdown table { display: block; overflow-x: auto; }
+
+/* 개념 학습 / 기존 문제풀이 전환 */
+.learning-return-button { display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 12px;margin:0 0 12px;border:1px solid var(--border-light);border-radius:10px;background:var(--bg-soft);color:var(--text-main);font-weight:650;text-align:left;}
+.learning-return-button:hover {background:var(--bg-hover)}
+.sidebar.collapsed .learning-return-button {justify-content:center;padding:8px 0}
+
+/* 학습 홈 전용 레이아웃: 처음에는 사이드바 대신 랜딩 페이지 표시 */
+.app.home-layout .main {width:100%;height:100vh;overflow:hidden;}
+.app.home-layout .header {border-bottom:1px solid var(--border);height:48px;min-height:48px;padding:0 clamp(20px,9vw,140px);}
+.study-home {flex:1;min-height:0;overflow-y:auto;background:var(--bg-main);}
+.study-home .hp {max-width:1100px;margin:0 auto;color:var(--text-main);}
+.study-home .hp-hero {padding-top:88px;}
+.study-home .hp-title {font-size:clamp(24px,3vw,38px);}
+.study-home .hp-card {background:var(--bg-soft);border-color:var(--border);color:var(--text-main);}
+.study-home .hp-card p,.study-home .hp-desc,.study-home .hp-section-head p {color:var(--text-muted);}
+.study-home .btn-primary {background:var(--send-bg);color:var(--send-text);}
+.study-home .hp-section {padding-left:22px;padding-right:22px;}
+@media(max-width:740px){.study-home .hp-hero {padding-top:60px;}.app.home-layout .header {padding:0 18px;}}
+
+.study-home {--ink:var(--text-main);--muted:var(--text-muted);--line:var(--border);--line-strong:var(--border-light);--surface:var(--bg-sidebar);--surface-2:var(--bg-soft);--bg:var(--bg-main)}
+.study-home .hp-actions .btn {border:1px solid var(--border);border-radius:9px;padding:12px 20px;font-size:14px;font-weight:650;cursor:pointer}
+.study-home .hp-card {border:1px solid var(--border);border-radius:13px;padding:20px;}
+.study-home .hp-card h3 {color:var(--text-main)}
+.study-home .hp-card-num,.study-home .hp-step-num {color:var(--text-muted)}
+
+/* 프로필에서도 기존 학습실/문제풀이실로 자연스럽게 복귀 */
+.profile-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.profile-back-button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-soft);
+  color: var(--text-main);
+  font-size: 12px;
+  cursor: pointer;
+}
+.profile-back-button:hover { background: var(--bg-hover); }
+.profile-back-button:focus-visible { outline: 2px solid var(--text-main); outline-offset: 2px; }
+@media (max-width: 620px) {
+  .profile-page-header { flex-wrap: wrap; }
+  .profile-header-actions { justify-content: flex-start; }
+}
+
+/* 취약점 문제 생성: 상단 분석 카드는 유지하고 하단에만 로딩 표시 */
+.weakness-inline-loading {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 12px;
+  padding: 36px 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weakness-inline-loading .quiz-loading {
+  width: 100%;
+  max-width: 720px;
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================================================
+   학습 현황: 헤더 오른쪽 새로고침 + 레이더 아래 과목 목록 토글
+========================================================= */
+.weakness-card .dashboard-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+.weakness-card .dashboard-card-header > button {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-top: 0;
+}
+.weakness-card .dashboard-card-header > button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+.weakness-card .learning-subject-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 17px 12px;
+}
+.weakness-card .subject-accuracy-toggle {
+  padding: 8px 13px;
+  border: 1px solid var(--border-light);
+  border-radius: 9px;
+  background: var(--bg-soft);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.weakness-card .subject-accuracy-toggle:hover { background: var(--bg-hover); }
+.weakness-card .subject-accuracy-toggle:focus-visible {
+  outline: 2px solid var(--text-main);
+  outline-offset: 2px;
+}
+.weakness-card .learning-subject-list {
+  max-height: 215px;
+  margin: 6px 17px 13px;
+  padding-right: 5px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) transparent;
+}
+@media (max-width: 620px) {
+  .weakness-card .dashboard-card-header { flex-wrap: wrap; }
+  .weakness-card .dashboard-card-header > button { margin-left: auto; }
+}
+
+/* =========================================================
+   카카오톡형 대화: 사용자 오른쪽 / AI 왼쪽
+========================================================= */
+.message-row.user {
+  justify-content: flex-end;
+  gap: 0;
+}
+.message-row.assistant {
+  justify-content: flex-start;
+  gap: 10px;
+}
+.message-row.user .message {
+  width: fit-content;
+  max-width: min(76%, 600px);
+  background: var(--bg-message);
+  border-radius: 17px 17px 5px 17px;
+  padding: 11px 16px;
+  white-space: pre-wrap;
+}
+.message-row.assistant .message {
+  min-width: 0;
+  width: fit-content;
+  max-width: min(78%, 650px);
+  padding: 11px 16px;
+  border-radius: 5px 17px 17px 17px;
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+@media (max-width: 620px) {
+  .message-row.user .message,
+  .message-row.assistant .message { max-width: 88%; }
+}

@@ -1,3 +1,6 @@
+import LearningPage from "./learning/pages/LearningPage.jsx";
+import HomePage from "./learning/pages/HomePage.jsx";
+import "./learning/learning.css";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -12,9 +15,12 @@ function App() {
   // =========================================================
   // 공통 상태
   // =========================================================
-  const [currentPage, setCurrentPage] = useState("chat");
+  const [currentPage, setCurrentPage] = useState("home");
+  // 개념학습실 / 문제풀이실은 프로필 진입 여부와 별개로 유지합니다.
+  const [activeArea, setActiveArea] = useState("study");
+  const [profileReturnPage, setProfileReturnPage] = useState("learn");
   const [darkMode, setDarkMode] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedCert, setSelectedCert] = useState("정보처리기사");
   const [certifications, setCertifications] = useState([]);
   const [connectionError, setConnectionError] = useState("");
@@ -119,19 +125,24 @@ function App() {
       sendMessage();
     }
   };
-  const newChat = () => {
+  const resetChat = () => {
     chatRequest.current?.abort();
     chatRequest.current = null;
     setChatLoading(false);
     setConversationId(null);
     setChatError("");
-    setCurrentPage("chat");
     setMessages([]);
     setInput("");
   };
+  const newChat = () => {
+    resetChat();
+    setActiveArea("practice");
+    setCurrentPage("chat");
+  };
   const changeCertification = label => {
     if (label === selectedCert) return;
-    newChat();
+    // 자격증 변경 시 대화 기록만 초기화하며 프로필/학습실 위치는 유지합니다.
+    resetChat();
     quizRequest.current?.abort();
     submitRequest.current?.abort();
     quizRequest.current = null;
@@ -148,7 +159,10 @@ function App() {
     setCurrentPage("quiz");
     if (quizRequest.current || submitRequest.current) return;
     if (!selectedCertId) {
-      setQuizError("자격증 목록을 불러온 뒤 다시 시도해 주세요.");
+      setQuiz(null);
+      setQuizError(connectionError
+        ? `자격증 목록 API에 연결하지 못했습니다. ${connectionError}`
+        : "자격증 목록을 불러온 뒤 다시 시도해 주세요. API 서버 실행 여부를 확인해 주세요.");
       return;
     }
     const controller = new AbortController();
@@ -207,12 +221,37 @@ function App() {
   // 모의고사
   // =========================================================
   const openMockExamPage = () => setCurrentPage("mockexam");
-  return <div className={`app ${darkMode ? "dark" : "light"}`}>
+  // currentPage === "profile"이어도 기존 학습실 메뉴를 그대로 유지합니다.
+  const studyMode = activeArea === "study";
+  // 문제풀이실로 명시적으로 이동할 때만 activeArea를 전환합니다.
+  const openPractice = () => {
+    setActiveArea("practice");
+    void loadQuiz();
+  };
+  const openStudy = () => {
+    setActiveArea("study");
+    setCurrentPage("learn");
+  };
+  const openStudyChat = () => {
+    setActiveArea("study");
+    setCurrentPage("studyChat");
+  };
+  const openProfile = () => {
+    if (currentPage === "profile") return;
+    setProfileReturnPage(currentPage);
+    setCurrentPage("profile");
+  };
+  const returnFromProfile = () => setCurrentPage(profileReturnPage);
+  return <div className={`app ${darkMode ? "dark" : "light"} ${currentPage === "home" ? "home-layout" : ""}`}>
       {/* =====================================================
           Sidebar
        ===================================================== */}
-      <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
+      {currentPage !== "home" && <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
         <div className="sidebar-top">
+          <button type="button" className="learning-return-button" onClick={studyMode ? openPractice : openStudy} title={studyMode ? "문제풀이 화면으로 가기" : "개념 학습으로 돌아가기"}>
+            <span className="menu-icon">{studyMode ? "□" : "‹"}</span>
+            {!sidebarCollapsed && <span>{studyMode ? "문제풀이로 가기" : "개념 학습으로 돌아가기"}</span>}
+          </button>
           <div className="sidebar-header">
             {!sidebarCollapsed && <div className="logo">
                 AI Tutor
@@ -222,47 +261,43 @@ function App() {
             </button>
           </div>
           {/* 새 대화 */}
-          <button type="button" className="new-chat-button" onClick={newChat}>
+          {!studyMode && <button type="button" className="new-chat-button" onClick={newChat}>
             <span>＋</span>
             {!sidebarCollapsed && <span>
                 새 대화
               </span>}
-          </button>
+          </button>}
           {/* 메뉴 */}
           <nav className="menu">
-            <button type="button" className={`menu-item ${currentPage === "chat" ? "active" : ""}`} onClick={() => setCurrentPage("chat")}>
-              <span className="menu-icon">
-                ◉
-              </span>
-              {!sidebarCollapsed && <span>
-                  AI 튜터
-                </span>}
-            </button>
-            <button type="button" className={`menu-item ${currentPage === "quiz" ? "active" : ""}`} onClick={loadQuiz}>
-              <span className="menu-icon">
-                □
-              </span>
-              {!sidebarCollapsed && <span>
-                  문제 풀이
-                </span>}
-            </button>
-            <button type="button" className={`menu-item ${currentPage === "weakness" ? "active" : ""}`} onClick={openWeaknessPage}>
-              <span className="menu-icon">◇</span>
-              {!sidebarCollapsed && <span>취약점 학습</span>}
-            </button>
-            <button type="button" className={`menu-item ${currentPage === "summary" ? "active" : ""}`} onClick={openSummaryPage} title="취약점 개념 요약">
-              <span className="menu-icon">○</span>
-              {!sidebarCollapsed && <span>취약점 개념 요약</span>}
-            </button>
-            <button type="button" className={`menu-item ${currentPage === "mockexam" ? "active" : ""}`} onClick={openMockExamPage} title="모의고사">
-              <span className="menu-icon">△</span>
-              {!sidebarCollapsed && <span>모의고사</span>}
-            </button>
+            {studyMode ? <>
+              <button type="button" className={`menu-item ${currentPage === "learn" ? "active" : ""}`} onClick={openStudy}>
+                <span className="menu-icon">▤</span>{!sidebarCollapsed && <span>개념 학습</span>}
+              </button>
+              <button type="button" className={`menu-item ${currentPage === "studyChat" ? "active" : ""}`} onClick={openStudyChat}>
+                <span className="menu-icon">◉</span>{!sidebarCollapsed && <span>AI 튜터</span>}
+              </button>
+            </> : <>
+              <button type="button" className={`menu-item ${currentPage === "chat" ? "active" : ""}`} onClick={() => setCurrentPage("chat")}>
+                <span className="menu-icon">◉</span>{!sidebarCollapsed && <span>AI 튜터</span>}
+              </button>
+              <button type="button" className={`menu-item ${currentPage === "quiz" ? "active" : ""}`} onClick={loadQuiz}>
+                <span className="menu-icon">□</span>{!sidebarCollapsed && <span>문제 풀이</span>}
+              </button>
+              <button type="button" className={`menu-item ${currentPage === "weakness" ? "active" : ""}`} onClick={openWeaknessPage}>
+                <span className="menu-icon">◇</span>{!sidebarCollapsed && <span>취약점 학습</span>}
+              </button>
+              <button type="button" className={`menu-item ${currentPage === "summary" ? "active" : ""}`} onClick={openSummaryPage}>
+                <span className="menu-icon">○</span>{!sidebarCollapsed && <span>취약점 개념 요약</span>}
+              </button>
+              <button type="button" className={`menu-item ${currentPage === "mockexam" ? "active" : ""}`} onClick={openMockExamPage}>
+                <span className="menu-icon">△</span>{!sidebarCollapsed && <span>모의고사</span>}
+              </button>
+            </>}
           </nav>
         </div>
         {/* 사용자 */}
         <div className="sidebar-bottom">
-          <button type="button" className={`sidebar-user-button ${currentPage === "profile" ? "active" : ""}`} onClick={() => setCurrentPage("profile")} title="나의 학습 현황">
+          <button type="button" className={`sidebar-user-button ${currentPage === "profile" ? "active" : ""}`} onClick={openProfile} title="나의 학습 현황">
             <div className="profile-circle">
               U
             </div>
@@ -276,7 +311,7 @@ function App() {
               </div>}
           </button>
         </div>
-      </aside>
+      </aside>}
       {/* =====================================================
           Main
        ===================================================== */}
@@ -284,16 +319,18 @@ function App() {
         {/* Header */}
         <header className="header">
           <div className="header-title">
-            안양대학교 AI Tutor
+            {currentPage === "home" ? "자격증 AI 학습실" : "안양대학교 AI Tutor"}
           </div>
           <button type="button" className="theme-toggle" onClick={() => setDarkMode(prev => !prev)} title={darkMode ? "라이트 모드" : "다크 모드"}>
             {darkMode ? "☀" : "☾"}
           </button>
         </header>
+        {currentPage === "home" && <div className="study-home"><HomePage onStart={openStudy} /></div>}
+        {currentPage === "learn" && <div className="concept-learning"><LearningPage /></div>}
         {/* =================================================
             AI Tutor
          ================================================= */}
-        {currentPage === "chat" && <>
+        {(currentPage === "chat" || currentPage === "studyChat") && <>
             <section className="chat-area">
               {messages.length === 0 ? <div className="welcome">
                   <div className="welcome-logo">
@@ -387,7 +424,7 @@ function App() {
             </div>
             {quizLoading && <div className="quiz-loading">
                 <div className="quiz-loading-spinner" />
-                <h3>AI가 문제를 만들고 있습니다.</h3>
+                <h3>AI가 문제를 생성하고 검토하고 있습니다.</h3>
                 <p>출제 후 검수까지 진행하므로 잠시 시간이 걸릴 수 있습니다.</p>
               </div>}
             {!quizLoading && quizError && <div className="quiz-error">{quizError}</div>}
@@ -496,9 +533,14 @@ function App() {
                     학습 기록과 현재 학습 설정을 한눈에 확인할 수 있습니다.
                   </p>
                 </div>
-                <button type="button" className="learning-reset-button" onClick={() => alert("학습 데이터 초기화 기능은 추후 연결 예정입니다.")}>
-                  학습 데이터 초기화
-                </button>
+                <div className="profile-header-actions">
+                  <button type="button" className="profile-back-button" onClick={returnFromProfile}>
+                    ← 이전 화면
+                  </button>
+                  <button type="button" className="learning-reset-button" onClick={() => alert("학습 데이터 초기화 기능은 추후 연결 예정입니다.")}>
+                    학습 데이터 초기화
+                  </button>
+                </div>
               </div>
               {/* =============================================
                   취약점 분석

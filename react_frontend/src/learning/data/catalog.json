@@ -1,0 +1,364 @@
+{
+  "config": {
+    "EIP": {
+      "label": "정보처리기사",
+      "topics": {
+        "software_design": "소프트웨어 설계",
+        "software_development": "소프트웨어 개발",
+        "database": "데이터베이스 구축",
+        "programming_language": "프로그래밍 언어 활용",
+        "info_system": "정보시스템 구축 관리"
+      }
+    }
+  },
+  "lessons": [
+    {
+      "id": "7cb663261849e61dfd43",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "1. 소프트웨어 생명 주기 (Software Life Cycle)"
+    },
+    {
+      "id": "098635dbd77ce5b177b2",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "2. 애자일 (Agile) 방법론"
+    },
+    {
+      "id": "b7d18201e70c26fddbeb",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "3. 소프트웨어 개발 방법론 개요"
+    },
+    {
+      "id": "36da0cd372e518a83566",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "4. 객체지향 (Object-Oriented) 분석 및 설계"
+    },
+    {
+      "id": "b7ce192339ea98e5cdff",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "5. UML (Unified Modeling Language)"
+    },
+    {
+      "id": "4cb6b59b73d860dfbea4",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "6. 기능 모델링 / 정적 모델링 / 동적 모델링 상세"
+    },
+    {
+      "id": "2f91c5a6aa0227c6e09a",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "7. 디자인 패턴 (Design Pattern) - GoF"
+    },
+    {
+      "id": "85a1f4a0be75269905ec",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "8. 현행 시스템 파악 및 개발 기술 환경 정의"
+    },
+    {
+      "id": "ea8f57a95065f9561b2c",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "9. 요구사항 (Requirements)"
+    },
+    {
+      "id": "4658840cda6e36c28505",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "10. 소프트웨어 아키텍처 및 설계, 인터페이스"
+    },
+    {
+      "id": "8d500f890505ab715635",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "11. S/W 공학 발전적 추세 및 프레임워크"
+    },
+    {
+      "id": "280f870b8b0d66bc6196",
+      "cert": "EIP",
+      "subject": "software_design",
+      "title": "12. 비용 산정 기법 및 프로젝트 일정 계획"
+    },
+    {
+      "id": "be24648f39f68f0c639d",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "1. UI 요구사항 확인"
+    },
+    {
+      "id": "f5c6720c5054bf65da43",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "2. UI 설계 (UML)"
+    },
+    {
+      "id": "a1ff07ad3307e4a83022",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "3. 데이터베이스 개요"
+    },
+    {
+      "id": "9f0111955bc32b7ee57a",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "4. 데이터베이스 설계"
+    },
+    {
+      "id": "916bd8860cd0649b6c18",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "5. 데이터 모델의 개념"
+    },
+    {
+      "id": "fb1cd37732bdb62f450d",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "6. 데이터 모델의 구성 요소"
+    },
+    {
+      "id": "938baa126c2d507e9d0d",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "7. E-R(개체-관계) 모델"
+    },
+    {
+      "id": "f7f25f6cb96bd07a173a",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "8. 관계형 데이터베이스의 구조 / 관계형 데이터 모델"
+    },
+    {
+      "id": "3712dff8173db6b8926f",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "9. 관계형 데이터베이스의 제약 조건 - 키"
+    },
+    {
+      "id": "dc22bb38a1eed586e8c7",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "10. 관계형 데이터베이스의 제약 조건 - 무결성"
+    },
+    {
+      "id": "127422e47c0ecbe47ae3",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "11. 관계대수 및 관계해석"
+    },
+    {
+      "id": "2bac2b5e43a1d90dca15",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "12. 이상 / 함수적 종속"
+    },
+    {
+      "id": "7dc412f863368b493418",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "13. 정규화 (Normalization)"
+    },
+    {
+      "id": "e805e13900c70d6faec1",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "14. 반정규화 (Denormalization)"
+    },
+    {
+      "id": "4463c9044a7cbe7475a8",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "15. 시스템 카탈로그"
+    },
+    {
+      "id": "c19c554f98d873c6aa3a",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "16. 트랜잭션 분석 / CRUD 분석"
+    },
+    {
+      "id": "28f0f3ea7156d44b5226",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "17. 인덱스"
+    },
+    {
+      "id": "c263382e485c9bd2b360",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "18. 뷰"
+    },
+    {
+      "id": "aa6a1450ee03075876dd",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "19. 파티션"
+    },
+    {
+      "id": "c3a339cf2b4824deaa3b",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "20. 데이터베이스 이중화 / 서버 클러스터링"
+    },
+    {
+      "id": "319565685536c239b660",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "21. 데이터베이스 보안"
+    },
+    {
+      "id": "b61aecb4fcd51ef72947",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "22. 스토리지"
+    },
+    {
+      "id": "f5c1e1354aa68a52c428",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "23. 자료 구조"
+    },
+    {
+      "id": "fe32714cf669974ff23d",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "24. 트리"
+    },
+    {
+      "id": "e75c7497517753222d10",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "25. 이진 트리"
+    },
+    {
+      "id": "ecee75a8a57671d0bd0f",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "26. 정렬(Sort)"
+    },
+    {
+      "id": "503c780eecc2524a5d41",
+      "cert": "EIP",
+      "subject": "software_development",
+      "title": "27. XML"
+    },
+    {
+      "id": "0746ddd93a52dcc5f5c0",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "1. 데이터베이스 (Database) 기본"
+    },
+    {
+      "id": "bc6fbe382589641cb175",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "2. 데이터베이스 설계 (Database Design)"
+    },
+    {
+      "id": "cfdf1486bad2c297338f",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "3. 관계형 데이터베이스 (Relational Database)"
+    },
+    {
+      "id": "cf2edd69133c3dec479f",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "4. 관계대수 및 관계해석"
+    },
+    {
+      "id": "021e01cc39ed2d328d5a",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "5. 이상 현상 및 정규화 (Normalization)"
+    },
+    {
+      "id": "230dfdfd61e0a57c092f",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "6. 트랜잭션 (Transaction)"
+    },
+    {
+      "id": "6c74168c25cf60fcd816",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "7. SQL (Structured Query Language)"
+    },
+    {
+      "id": "2afcb19a6770e9a29a56",
+      "cert": "EIP",
+      "subject": "database",
+      "title": "8. 뷰 (View) 및 인덱스 (Index)"
+    },
+    {
+      "id": "1dc7977d8685f42e1a1e",
+      "cert": "EIP",
+      "subject": "programming_language",
+      "title": "1. 운영체제 (Operating System) 기초"
+    },
+    {
+      "id": "11280974f1a33b4c4de3",
+      "cert": "EIP",
+      "subject": "programming_language",
+      "title": "2. 메모리 관리 (Memory Management)"
+    },
+    {
+      "id": "a44a2d7105bb57f234e6",
+      "cert": "EIP",
+      "subject": "programming_language",
+      "title": "3. 네트워크 (Network) 및 인터넷"
+    },
+    {
+      "id": "3f6a50deea65ab55afa5",
+      "cert": "EIP",
+      "subject": "programming_language",
+      "title": "4. 프로그래밍 언어 특징"
+    },
+    {
+      "id": "1df66f8b4c6ab3d45da8",
+      "cert": "EIP",
+      "subject": "programming_language",
+      "title": "5. 정보 보안 (Information Security)"
+    },
+    {
+      "id": "cee7f6c1657323feca3a",
+      "cert": "EIP",
+      "subject": "info_system",
+      "title": "1. 소프트웨어 개발 방법론 활용"
+    },
+    {
+      "id": "4c6f07deee94821c0261",
+      "cert": "EIP",
+      "subject": "info_system",
+      "title": "2. IT 프로젝트 비용 산정 모델 (Cost Estimation)"
+    },
+    {
+      "id": "40c313cc33cb4c09bd14",
+      "cert": "EIP",
+      "subject": "info_system",
+      "title": "3. 프로젝트 일정 관리 (Scheduling)"
+    },
+    {
+      "id": "838d3154c40e2b3db6fc",
+      "cert": "EIP",
+      "subject": "info_system",
+      "title": "4. 소프트웨어 아키텍처 및 스토리지 시스템"
+    },
+    {
+      "id": "30a2c6365b59ae997b5c",
+      "cert": "EIP",
+      "subject": "info_system",
+      "title": "5. 정보 보안 및 시스템 보안 구축"
+    },
+    {
+      "id": "5a5b16bd71ad8f82403d",
+      "cert": "EIP",
+      "subject": "info_system",
+      "title": "6. IT 신기술 동향"
+    }
+  ]
+}
