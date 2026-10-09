@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '../context/AuthContext.jsx';
 import * as api from '../api/api.js';
 import Sidebar from '../components/Sidebar.jsx';
 import LessonIndex from '../components/LessonIndex.jsx';
@@ -7,6 +6,9 @@ import LecturePane, { VARIANT_PROMPTS, DEFAULT_VARIANT } from '../components/Lec
 import TutorPane from '../components/TutorPane.jsx';
 import PracticePanel from '../components/PracticePanel.jsx';
 import ProgressBar from '../components/ProgressBar.jsx';
+
+// 로그인 기능이 없으므로 진도는 이 이름으로 저장 (파이썬의 '학습 프로필' 기본값과 같음)
+const LEARNER = '내 학습';
 
 // 단원을 새로 열 때마다 강의/질문 상태를 비움
 const emptyLecture = () => ({
@@ -21,8 +23,7 @@ const emptyLecture = () => ({
 });
 
 export default function LearningPage() {
-  const { user } = useAuth();
-  const learner = user.email; // 파이썬의 '학습 프로필' 대신 로그인 계정으로 진도 저장
+  const learner = LEARNER;
 
   const [catalog, setCatalog] = useState(null);
   const [loadError, setLoadError] = useState(false);

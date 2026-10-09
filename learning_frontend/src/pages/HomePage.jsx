@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
 import './home.css';
 
 const FEATURES = [
@@ -22,14 +21,12 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { title: '자격증과 단원 고르기', desc: '처음부터, 이어서, 또는 원하는 단원부터 시작하세요.' },
+  { title: '단원 고르기', desc: '처음부터, 이어서, 또는 원하는 단원부터 시작하세요.' },
   { title: '강의 보고 듣기', desc: '내 수준에 맞는 설명 방식을 골라 읽거나 들어요.' },
   { title: '묻고, 문제로 확인하기', desc: '막히면 튜터에게 묻고, 문제풀이로 실력을 점검해요.' },
 ];
 
 export default function HomePage() {
-  const { user } = useAuth();
-
   return (
     <div className="hp">
       {/* 1. 첫 화면 */}
@@ -37,14 +34,7 @@ export default function HomePage() {
         <h1 className="hp-title">강의 듣고, 문제 풀고, 모르면 바로 물어보는 AI 튜터</h1>
         <p className="hp-desc">개념부터 문제풀이까지, AI 튜터에게 대화로 물어보세요.</p>
         <div className="hp-actions">
-          {user ? (
-            <Link to="/learn" className="btn btn-primary btn-lg">학습 이어하기</Link>
-          ) : (
-            <>
-              <Link to="/signup" className="btn btn-primary btn-lg">회원가입하고 시작하기</Link>
-              <Link to="/login" className="btn btn-ghost btn-lg">이미 계정이 있어요</Link>
-            </>
-          )}
+          <Link to="/learn" className="btn btn-primary btn-lg">학습 시작하기</Link>
         </div>
       </section>
 
