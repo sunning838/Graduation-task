@@ -242,6 +242,8 @@ function App() {
     setCurrentPage("profile");
   };
   const returnFromProfile = () => setCurrentPage(profileReturnPage);
+  // 헤더 제목을 누르면 홈 화면으로 이동
+  const goHome = () => setCurrentPage("home");
   return <div className={`app ${darkMode ? "dark" : "light"} ${currentPage === "home" ? "home-layout" : ""}`}>
       {/* =====================================================
           Sidebar
@@ -318,9 +320,9 @@ function App() {
       <main className="main">
         {/* Header */}
         <header className="header">
-          <div className="header-title">
+          <button type="button" className="header-title header-home-button" onClick={goHome} title="홈으로">
             {currentPage === "home" ? "자격증 AI 학습실" : "안양대학교 AI Tutor"}
-          </div>
+          </button>
           <button type="button" className="theme-toggle" onClick={() => setDarkMode(prev => !prev)} title={darkMode ? "라이트 모드" : "다크 모드"}>
             {darkMode ? "☀" : "☾"}
           </button>

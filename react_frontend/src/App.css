@@ -4089,3 +4089,21 @@ textarea::placeholder {
   .message-row.user .message,
   .message-row.assistant .message { max-width: 88%; }
 }
+
+.learning-return-button {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.learning-return-button span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app > .sidebar {
+  position: relative;
+  top: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+}
