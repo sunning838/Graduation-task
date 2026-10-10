@@ -15,7 +15,7 @@ export default function ChatMessage({ message }) {
   );
 }
 
-function Visual({ visual }) {
+export function Visual({ visual }) {
   if (visual.kind !== 'table' && visual.kind !== 'graph') return null;
   return (
     <div className="visual">
@@ -50,7 +50,7 @@ function Visual({ visual }) {
   );
 }
 
-function Research({ research }) {
+export function Research({ research }) {
   return (
     <div className="research">
       <p className="muted small">웹 검색 참고</p>

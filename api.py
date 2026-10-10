@@ -278,3 +278,6 @@ def submit_quiz(request: QuizSubmitRequest, store: APIStore = Depends(get_store)
     if request.attempt_id and request.quiz_id and request.attempt_id != request.quiz_id:
         fail(422, 'INVALID_REQUEST', '풀이 ID가 일치하지 않습니다.')
     return store.submit(request.attempt_id or request.quiz_id, request.selected_answer)
+
+from backend.learning_routes import router as learning_router
+app.include_router(learning_router)

@@ -1,4 +1,5 @@
 import ChatMessage from './ChatMessage.jsx';
+import AudioLecture from './AudioLecture.jsx';
 
 // 탭별로 백엔드에 보내는 요청 문장 (파이썬 variant_prompts 그대로)
 export const VARIANT_PROMPTS = {
@@ -35,8 +36,19 @@ export default function LecturePane({ tab, onTabChange, variants, errors, loadin
 
       <div className="pane-scroll lecture-box">
         {saved ? (
-          // 내용이 비어 있으면 빈칸으로 둠
-          hasContent ? <ChatMessage message={saved} /> : null
+          hasContent ? (
+            saved.text ? (
+              // 강의 글이 있으면 음성 강의와 함께 표시
+              <AudioLecture
+                key={`${saved.lessonId}:${tab}`}
+                lessonId={saved.lessonId}
+                variant={tab}
+                message={saved}
+              />
+            ) : (
+              <ChatMessage message={saved} />
+            )
+          ) : null
         ) : errors[tab] ? (
           <div className="notice">
             설명을 준비하지 못했습니다. 다시 시도해 주세요.
