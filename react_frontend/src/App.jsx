@@ -81,6 +81,8 @@ function App() {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
   const [quizError, setQuizError] = useState("");
+  const [lessonPractice, setLessonPractice] = useState(null);
+  const [learningReturnId, setLearningReturnId] = useState(null);
   // =========================================================
   // =========================================================
   // 취약점 학습 상태
@@ -154,11 +156,14 @@ function App() {
     setQuizResult(null);
     setQuizError("");
     setSelectedCert(label);
+    setLessonPractice(null);
   };
-  const loadQuiz = async () => {
+  const loadQuiz = async (requestedLesson = null) => {
+    const scope = requestedLesson?.id ? requestedLesson : null;
     setCurrentPage("quiz");
     if (quizRequest.current || submitRequest.current) return;
-    if (!selectedCertId) {
+    setLessonPractice(scope);
+    if (!scope && !selectedCertId) {
       setQuiz(null);
       setQuizError(connectionError
         ? `자격증 목록 API에 연결하지 못했습니다. ${connectionError}`
@@ -174,7 +179,7 @@ function App() {
     setQuizError("");
     try {
       const data = await apiRequest("/api/quiz", {
-        signal: controller.signal, body: { cert: selectedCertId },
+        signal: controller.signal, body: scope ? { cert: 'EIP', mode: 'lesson', lesson_id: scope.id } : { cert: selectedCertId },
       });
       if (quizRequest.current === controller) setQuiz(data);
     } catch (error) {
@@ -231,6 +236,14 @@ function App() {
   const openStudy = () => {
     setActiveArea("study");
     setCurrentPage("learn");
+  };
+  const openLessonPractice = lesson => {
+    quizRequest.current?.abort();
+    quizRequest.current = null;
+    setSelectedCert("정보처리기사");
+    setLearningReturnId(lesson.id);
+    setActiveArea("practice");
+    void loadQuiz(lesson);
   };
   const openStudyChat = () => {
     setActiveArea("study");
@@ -328,7 +341,7 @@ function App() {
           </button>
         </header>
         {currentPage === "home" && <div className="study-home"><HomePage onStart={openStudy} /></div>}
-        {currentPage === "learn" && <div className="concept-learning"><LearningPage /></div>}
+        {currentPage === "learn" && <div className="concept-learning"><LearningPage returnLessonId={learningReturnId} onLessonChange={setLearningReturnId} onPractice={openLessonPractice} /></div>}
         {/* =================================================
             AI Tutor
          ================================================= */}
@@ -418,9 +431,10 @@ function App() {
               <div>
                 <span className="quiz-page-label">PRACTICE</span>
                 <h1>문제 풀이</h1>
-                <p>AI가 기출 데이터를 분석해 만든 변형 문제입니다.</p>
+                <p>{lessonPractice ? `${lessonPractice.title} · 학습한 단원의 자료를 바탕으로 만든 문제입니다.` : 'AI가 기출 데이터를 분석해 만든 변형 문제입니다.'}</p>
+                {lessonPractice && <button type="button" className="quiz-new-button" onClick={openStudy}>학습하던 단원으로 돌아가기</button>}
               </div>
-              <button type="button" className="quiz-new-button" onClick={loadQuiz} disabled={quizLoading || quizSubmitting || !selectedCertId}>
+              <button type="button" className="quiz-new-button" onClick={() => loadQuiz(lessonPractice)} disabled={quizLoading || quizSubmitting || (!lessonPractice && !selectedCertId)}>
                 새 문제
               </button>
             </div>
@@ -434,7 +448,7 @@ function App() {
                 {/* 왼쪽: 원래 문제 */}
                 <div className="quiz-card quiz-question-panel">
                   <div className="quiz-meta">
-                    <span>{selectedCert}</span>
+                    <span>{lessonPractice ? '정보처리기사' : selectedCert}</span>
                     <span>{quiz.topic_label}</span>
                   </div>
                   <h2 className="quiz-question">
@@ -497,7 +511,7 @@ function App() {
                       </ReactMarkdown>
                     </div>
                     <div className="quiz-solution-actions">
-                      <button type="button" className="quiz-next-button" onClick={loadQuiz}>
+                      <button type="button" className="quiz-next-button" onClick={() => loadQuiz(lessonPractice)}>
                         다음 문제
                       </button>
                     </div>

@@ -2,6 +2,7 @@
 import logging
 import re
 from functools import lru_cache
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -15,7 +16,6 @@ def _fail(status, code, message, retryable=False):
     raise HTTPException(status, detail=dict(code=code, message=message, retryable=retryable))
 
 
-@lru_cache
 def _catalog():
     from backend.learning import catalog
     return catalog()
@@ -49,9 +49,25 @@ class ProgressRequest(BaseModel):
     complete: bool = False
 
 
+class TutorMessage(BaseModel):
+    role: Literal['user', 'assistant']
+    text: str = Field(min_length=1, max_length=2000)
+
+
 class TeachRequest(BaseModel):
     lesson_id: str = Field(min_length=1, max_length=100)
-    prompt: str = Field(min_length=1, max_length=20000)
+    prompt: str | None = Field(default=None, min_length=1, max_length=20000)
+    variant: Literal['basic', 'simple', 'example'] = 'basic'
+    question: str | None = Field(default=None, min_length=1, max_length=2000)
+    explanation: str = Field(default='', max_length=12000)
+    history: list[TutorMessage] = Field(default_factory=list, max_length=6)
+
+
+VARIANT_PROMPTS = {
+    'basic': '처음 배우는 학생에게 이 학습 항목의 첫 강의를 시작해 주세요.',
+    'simple': '현재 단원의 개념 전체를 쉬운 용어와 짧은 단계로 다시 설명하세요. 낯선 용어를 먼저 풀고 원문의 정확한 조건은 유지하세요.',
+    'example': '현재 단원을 하나의 구체적인 사례로 단계별 설명하세요. 사례의 각 부분과 개념을 연결하고 예시임을 표시하세요. 원문 조건을 유지하세요.',
+}
 
 
 class AudioRequest(BaseModel):
@@ -67,7 +83,7 @@ def get_catalog():
     return {
         'config': {key: {'label': value.get('label', key), 'topics': dict(value.get('topics', {}))}
                    for key, value in config.items()},
-        'lessons': [dict(id=l['id'], cert=l['cert'], subject=l['subject'], title=display_title(l['title']))
+        'lessons': [dict(id=l['id'], cert=l['cert'], subject=l['subject'], version=l['version'], title=display_title(l['title']))
                     for l in lessons],
     }
 
@@ -89,12 +105,28 @@ def teach_lesson(request: TeachRequest):
     from backend.lesson_display import learner_text
     _, lessons = _catalog()
     lesson = _lesson(request.lesson_id)
+    if request.question is not None:
+        if not request.question.strip():
+            _fail(422, 'EMPTY_QUESTION', '질문을 입력해 주세요.')
+        history = '\n'.join(f'{m.role}: {m.text}' for m in request.history)
+        prompt = (f'{request.question}\n[현재 선택한 설명 방식]\n{request.variant}'
+                  f'\n[현재 보고 있는 강의: 참고용]\n{request.explanation}'
+                  f'\n[이전 질문 대화: 참고용]\n{history}')
+    else:
+        prompt = request.prompt or VARIANT_PROMPTS[request.variant]
     try:
-        data, _docs = teach(lesson, lessons, request.prompt)
+        data, _docs = teach(lesson, lessons, prompt)
     except Exception:
         LOG.exception('Lesson generation failed: %s', request.lesson_id)
         _fail(502, 'TEACH_FAILED', '설명을 준비하지 못했습니다. 다시 시도해 주세요.', True)
-    visual = diagram(data)
+    try:
+        visual = diagram(data)
+        if visual and visual.get('kind') == 'graph':
+            spec = data['visual']
+            visual.update(nodes=spec['nodes'], edges=[{k: e[k] for k in ('from','to','relation','label')} for e in spec['edges']], layout=spec['type'])
+    except (KeyError, TypeError, ValueError):
+        LOG.warning('Cannot render lesson visual: %s', request.lesson_id)
+        visual = None
     if not isinstance(visual, dict) or visual.get('kind') not in ('table', 'graph'):
         visual = None
     research = data.get('research') or None

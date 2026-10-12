@@ -25,7 +25,15 @@ pip install -r requirements.txt
 
 streamlit run frontend/app.py 명령어로 서버를 실행합니다
 
-## 백엔드 테스트
+## React 화면 간편 실행
+
+프로젝트 폴더의 `start_web.cmd`를 더블클릭하면 API(8000)와 React(5173)를 실행하고,
+준비 완료 후 브라우저를 엽니다. 실행 창은 유지하고 종료할 때 그 창에서 `Ctrl+C`를 누르세요.
+기존 서버가 같은 포트에서 실행 중이면 먼저 종료해야 합니다.
+최초 Python 가상환경·requirements 및 React의 `npm install`은 미리 완료해야 합니다.
+기존 `start.cmd`는 이전 Streamlit 화면용입니다.
+
+## 백엔드 테스트 실행
 
 프로젝트 루트에서 `.\venv\Scripts\python.exe -m backend.test`로 자동 테스트를 실행합니다.
 테스트 파일과 성능 측정·검색 점검 도구는 `backend/test`에서 관리합니다.

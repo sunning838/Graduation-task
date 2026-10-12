@@ -1,4 +1,6 @@
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import GraphDiagram from './GraphDiagram.jsx';
 
 export default function ChatMessage({ message }) {
   const { role, text, visual, research } = message;
@@ -7,7 +9,7 @@ export default function ChatMessage({ message }) {
     <div className={`msg msg-${role}`}>
       <div className="msg-role">{role === 'user' ? '나' : '튜터'}</div>
       <div className="markdown">
-        <ReactMarkdown>{text}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
       </div>
       {visual && <Visual visual={visual} />}
       {research?.status === 'supplemented' && <Research research={research} />}
@@ -43,8 +45,7 @@ export function Visual({ visual }) {
           </table>
         </div>
       ) : (
-        // 그래프(graphviz) 그림 표시는 추후 추가, 지금은 원본 코드만 보여줌
-        <pre className="graph-dot">{visual.dot}</pre>
+        <GraphDiagram visual={visual} />
       )}
     </div>
   );

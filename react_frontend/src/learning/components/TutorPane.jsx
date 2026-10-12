@@ -44,13 +44,14 @@ export default function TutorPane({ tab, messages, canAsk, loading, error, onAsk
       <div className="chat-input">
         <input
           value={question}
+          maxLength={2000}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => {
             // 한글 입력 중 Enter가 두 번 처리되는 것 방지
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit();
           }}
           placeholder={canAsk ? '이 부분이 궁금해요…' : '설명이 준비되면 질문할 수 있어요'}
-          disabled={!canAsk}
+          disabled={!canAsk || loading}
         />
         <button
           type="button"

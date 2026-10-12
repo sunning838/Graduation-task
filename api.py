@@ -80,7 +80,8 @@ class ChatRequest(BaseModel):
 
 class QuizRequest(BaseModel):
     cert: Identifier = 'EIP'
-    mode: Literal['random', 'weakness'] = 'random'
+    mode: Literal['random', 'weakness', 'lesson'] = 'random'
+    lesson_id: Identifier | None = None
 
 
 class SummaryRequest(BaseModel):
@@ -242,6 +243,16 @@ def validate_quiz(quiz, config):
 def create_quiz(request: QuizRequest, store: APIStore = Depends(get_store)):
     config = certification(request.cert)
     focus = None
+    lesson = None
+    if request.mode == 'lesson':
+        from backend.learning_routes import _lesson
+        if not request.lesson_id:
+            fail(422, 'LESSON_REQUIRED', '학습 단원을 선택해 주세요.')
+        lesson = _lesson(request.lesson_id)
+        if lesson['cert'] != request.cert:
+            fail(422, 'LESSON_CERT_MISMATCH', '자격증과 학습 단원이 일치하지 않습니다.')
+    elif request.lesson_id is not None:
+        fail(422, 'INVALID_LESSON_MODE', '단원 문제풀이 모드를 사용해 주세요.')
     if request.mode == 'weakness':
         analysis = learning_stats(store, request.cert)['weakness']
         focus = analysis['focus']
@@ -249,7 +260,15 @@ def create_quiz(request: QuizRequest, store: APIStore = Depends(get_store)):
             code = 'INSUFFICIENT_HISTORY' if analysis['status'] == 'insufficient_data' else 'NO_WEAK_TOPIC'
             fail(409, code, analysis['message'])
     try:
-        if focus:
+        if lesson:
+            from backend.practice_bridge import scoped_quiz
+            engine = get_engine()
+            quiz = scoped_quiz(engine, lesson, request.cert)
+            validate_quiz(quiz, config)
+            verdict = engine.verify_quiz(quiz, lesson['body'], request.cert)
+            if verdict.get('is_valid') is not True:
+                fail(502, 'QUIZ_VERIFICATION_FAILED', '문제 검수를 통과하지 못했습니다. 다시 시도해 주세요.', True)
+        elif focus:
             quiz = get_engine().generate_advanced_quiz(
                 cert=request.cert, target_topic=focus['topic'], strict_subject=True)
             if quiz.get('failure_code') == 'NO_SUBJECT_MATERIAL':

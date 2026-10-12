@@ -1,241 +1,188 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import * as api from '../api/api.js';
+import * as api from '../api/lessonClient.js';
 import LessonIndex from '../components/LessonIndex.jsx';
-import LecturePane, { VARIANT_PROMPTS, DEFAULT_VARIANT } from '../components/LecturePane.jsx';
+import LecturePane, { DEFAULT_VARIANT } from '../components/LecturePane.jsx';
 import TutorPane from '../components/TutorPane.jsx';
-import PracticePanel from '../components/PracticePanel.jsx';
 import ProgressBar from '../components/ProgressBar.jsx';
 
-// 로그인 기능이 없으므로 진도는 이 이름으로 저장 (파이썬의 '학습 프로필' 기본값과 같음)
 const LEARNER = '내 학습';
+const CERT = 'EIP';
+const cache = new Map();
+const emptyLecture = () => ({ tab: DEFAULT_VARIANT, variants: {}, errors: {}, loading: {}, messages: [], tutorLoading: false, tutorError: false, pending: null });
+const cacheKey = lesson => `${lesson.id}:${lesson.version}`;
 
-// 단원을 새로 열 때마다 강의/질문 상태를 비움
-const emptyLecture = () => ({
-  tab: DEFAULT_VARIANT,
-  variants: {}, // 탭별 설명 { '기본 설명': message, ... }
-  errors: {}, // 탭별 실패 여부
-  loading: {}, // 탭별 로딩 여부
-  messages: [], // 튜터 질문/답변
-  tutorLoading: false,
-  tutorError: false,
-  pending: null, // 다시 요청할 질문
-});
-
-export default function LearningPage() {
-  const learner = LEARNER;
-
+export default function LearningPage({ returnLessonId, onLessonChange, onPractice }) {
   const [catalog, setCatalog] = useState(null);
-  const [loadError, setLoadError] = useState(false);
-  const [cert, setCert] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [reload, setReload] = useState(0);
   const [states, setStates] = useState({});
-  const [activeId, setActiveId] = useState(null);
-  const [practice, setPractice] = useState(false);
-  const [practiceLesson, setPracticeLesson] = useState(null);
+  const [progressError, setProgressError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [activeId, setActiveId] = useState(returnLessonId || null);
+  const activeIdRef = useRef(returnLessonId || null);
   const [lecture, setLecture] = useState(emptyLecture);
-
-  const visitRef = useRef(0); // 단원이 바뀌면 이전 요청 결과는 버림
-  const inflightRef = useRef(new Set()); // 같은 설명을 두 번 요청하지 않도록
+  const visit = useRef(0);
+  const inflight = useRef(new Map());
+  const progressLock = useRef(false);
+  const tutorLock = useRef(false);
+  const alive = useRef(false);
+  const pendingSave = useRef(null);
+  const progressRevision = useRef(0);
+  const lessons = useMemo(() => catalog?.lessons || [], [catalog]);
+  const active = lessons.find(l => l.id === activeId);
+  const last = lessons.reduce((best, l) => states[l.id] && (!best || states[l.id].updatedAt > states[best.id].updatedAt) ? l : best, null);
+  const done = lessons.filter(l => states[l.id]?.status === 'complete').length;
 
   useEffect(() => {
-    api
-      .getCatalog()
-      .then((data) => {
-        setCatalog(data);
-        const first = Object.keys(data.config).find((c) => data.lessons.some((l) => l.cert === c));
-        setCert(first ?? '');
-      })
-      .catch(() => setLoadError(true));
+    alive.current = true;
+    const requests = inflight.current;
+    return () => {
+      alive.current = false; visit.current += 1;
+      requests.forEach(controller => controller.abort()); requests.clear();
+    };
   }, []);
 
   useEffect(() => {
-    api.getProgress(learner).then(setStates).catch(() => setStates({}));
-  }, [learner]);
+    const controller = new AbortController();
+    const revision = progressRevision.current;
+    api.getCatalog(controller.signal).then(data => {
+      if (controller.signal.aborted) return;
+      const restored = data.lessons.find(l => l.id === activeIdRef.current);
+      setLecture({ ...emptyLecture(), ...(restored ? cache.get(cacheKey(restored)) : {}) });
+      setCatalog(data); setLoadError('');
+    }).catch(e => { if (!controller.signal.aborted) setLoadError(e.message); });
+    api.getProgress(LEARNER, controller.signal).then(data => {
+      if (!controller.signal.aborted && revision === progressRevision.current) { setStates(data); setProgressError(''); }
+    }).catch(e => { if (!controller.signal.aborted && revision === progressRevision.current) setProgressError(e.message); });
+    return () => controller.abort();
+  }, [reload]);
 
-  const certs = useMemo(
-    () => (catalog ? Object.keys(catalog.config).filter((c) => catalog.lessons.some((l) => l.cert === c)) : []),
-    [catalog]
-  );
-  const lessons = useMemo(
-    () => (catalog ? catalog.lessons.filter((l) => l.cert === cert) : []),
-    [catalog, cert]
-  );
-  const active = lessons.find((l) => l.id === activeId) ?? null;
-  const done = lessons.filter((l) => states[l.id]?.status === 'complete').length;
-  const last = useMemo(() => {
-    let best = null;
-    for (const l of lessons) {
-      const s = states[l.id];
-      if (s && (!best || s.updatedAt > states[best.id].updatedAt)) best = l;
-    }
-    return best;
-  }, [lessons, states]);
-
-  const closeLesson = () => {
-    visitRef.current += 1;
-    setActiveId(null);
+  const changeLesson = lesson => {
+    visit.current += 1;
+    inflight.current.forEach(controller => controller.abort()); inflight.current.clear();
+    tutorLock.current = false;
+    activeIdRef.current = lesson?.id || null;
+    setActiveId(lesson?.id || null); onLessonChange?.(lesson?.id || null);
+    setLecture(lesson ? { ...emptyLecture(), ...cache.get(cacheKey(lesson)) } : emptyLecture());
+    document.querySelector('.concept-learning')?.scrollTo(0, 0);
   };
 
-  const openLesson = async (lesson) => {
-    visitRef.current += 1;
-    setActiveId(lesson.id);
-    setLecture(emptyLecture());
-    document.querySelector(".concept-learning")?.scrollTo(0, 0);
-    setStates(await api.saveProgress(learner, lesson.id));
-  };
-
-  const loadVariant = async (label) => {
-    const visit = visitRef.current;
-    const key = `${visit}:${label}`;
-    if (inflightRef.current.has(key)) return;
-    inflightRef.current.add(key);
-    setLecture((p) => ({ ...p, loading: { ...p.loading, [label]: true }, errors: { ...p.errors, [label]: false } }));
+  const saveAndMove = async (lesson, complete = false) => {
+    if (!lesson || progressLock.current) return;
+    progressRevision.current += 1;
+    progressLock.current = true; setSaving(true); setProgressError('');
+    pendingSave.current = { lesson, complete };
     try {
-      const data = await api.teach(active.id, VARIANT_PROMPTS[label]);
-      if (visit !== visitRef.current) return;
-      setLecture((p) => ({
-        ...p,
-        loading: { ...p.loading, [label]: false },
-        variants: { ...p.variants, [label]: { role: 'assistant', ...data } },
-      }));
-    } catch {
-      if (visit !== visitRef.current) return;
-      setLecture((p) => ({ ...p, loading: { ...p.loading, [label]: false }, errors: { ...p.errors, [label]: true } }));
-    } finally {
-      inflightRef.current.delete(key);
-    }
+      const data = await api.saveProgress(LEARNER, lesson.id, complete);
+      if (!alive.current) return;
+      setStates(data); pendingSave.current = null;
+      if (complete) {
+        const next = lessons[lessons.indexOf(lesson) + 1] || null;
+        if (next) {
+          pendingSave.current = { lesson: next, complete: false };
+          const nextStates = await api.saveProgress(LEARNER, next.id, false);
+          if (!alive.current) return;
+          setStates(nextStates); pendingSave.current = null;
+        }
+        changeLesson(next);
+      } else changeLesson(lesson);
+    } catch (e) { if (alive.current) setProgressError(e.message); }
+    finally { progressLock.current = false; if (alive.current) setSaving(false); }
   };
 
-  // 탭을 열었는데 설명이 없으면 자동으로 요청
-  useEffect(() => {
+  const loadVariant = async label => {
     if (!active) return;
-    const { tab, variants, errors, loading } = lecture;
-    if (!variants[tab] && !errors[tab] && !loading[tab]) loadVariant(tab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active?.id, lecture.tab, lecture.variants, lecture.errors, lecture.loading]);
-
-  const askTutor = async (req) => {
-    const visit = visitRef.current;
-    const history = lecture.messages
-      .slice(-6)
-      .map((m) => `${m.role}: ${m.text}`)
-      .join('\n');
-    const context =
-      `${req.question}\n[현재 선택한 설명 방식]\n${req.variant}` +
-      `\n[현재 보고 있는 강의: 참고용]\n${req.explanation}` +
-      `\n[이전 질문 대화: 참고용]\n${history}`;
-
-    setLecture((p) => ({ ...p, pending: req, tutorLoading: true, tutorError: false }));
+    const version = visit.current;
+    const key = `${version}:${active.id}:${label}`;
+    if (inflight.current.has(key)) return;
+    const stored = cache.get(cacheKey(active));
+    if (stored?.variants[label]) {
+      setLecture(p => ({ ...p, variants: { ...p.variants, [label]: stored.variants[label] } })); return;
+    }
+    const controller = new AbortController(); inflight.current.set(key, controller);
+    setLecture(p => ({ ...p, loading: { ...p.loading, [label]: true }, errors: { ...p.errors, [label]: false } }));
     try {
-      const data = await api.teach(active.id, context);
-      if (visit !== visitRef.current) return;
-      setLecture((p) => ({
-        ...p,
-        tutorLoading: false,
-        pending: null,
-        messages: [...p.messages, { role: 'user', text: req.question }, { role: 'assistant', ...data }],
-      }));
-    } catch {
-      if (visit !== visitRef.current) return;
-      setLecture((p) => ({ ...p, tutorLoading: false, tutorError: true }));
+      const data = await api.teach(active.id, label, controller.signal);
+      if (!alive.current || version !== visit.current) return;
+      const message = { role: 'assistant', ...data };
+      const previous = cache.get(cacheKey(active)) || { variants: {}, messages: [] };
+      cache.set(cacheKey(active), { ...previous, variants: { ...previous.variants, [label]: message } });
+      setLecture(p => ({ ...p, loading: { ...p.loading, [label]: false }, variants: { ...p.variants, [label]: message } }));
+    } catch (e) {
+      if (!alive.current || version !== visit.current || e.name === 'AbortError') return;
+      setLecture(p => ({ ...p, loading: { ...p.loading, [label]: false }, errors: { ...p.errors, [label]: true } }));
+    } finally { inflight.current.delete(key); }
+  };
+
+  useEffect(() => {
+    if (active && cache.get(cacheKey(active))?.tab && cache.get(cacheKey(active)).tab !== lecture.tab) return;
+    if (active && !lecture.variants[lecture.tab] && !lecture.errors[lecture.tab] && !lecture.loading[lecture.tab]) {
+      const timer = setTimeout(() => loadVariant(lecture.tab), 0);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id, active?.version, lecture.tab, lecture.variants, lecture.errors, lecture.loading]);
+
+  const askTutor = async req => {
+    if (!active || tutorLock.current) return;
+    tutorLock.current = true;
+    const version = visit.current, key = `${version}:tutor`;
+    const controller = new AbortController(); inflight.current.set(key, controller);
+    setLecture(p => ({ ...p, pending: req, tutorLoading: true, tutorError: false }));
+    try {
+      const data = await api.teach(active.id, req.variant, controller.signal, { ...req, history: lecture.messages });
+      if (!alive.current || version !== visit.current) return;
+      const messages = [...lecture.messages, { role: 'user', text: req.question }, { role: 'assistant', ...data }];
+      const previous = cache.get(cacheKey(active)) || { variants: {} };
+      cache.set(cacheKey(active), { ...previous, messages });
+      setLecture(p => ({ ...p, messages, pending: null, tutorLoading: false }));
+    } catch (e) {
+      if (alive.current && version === visit.current && e.name !== 'AbortError') setLecture(p => ({ ...p, tutorLoading: false, tutorError: true }));
+    } finally {
+      inflight.current.delete(key);
+      if (version === visit.current) tutorLock.current = false;
     }
   };
 
-  const completeAndNext = async () => {
-    setStates(await api.saveProgress(learner, active.id, true));
-    const i = lessons.indexOf(active);
-    if (i + 1 < lessons.length) openLesson(lessons[i + 1]);
-    else closeLesson();
+  const changeTab = tab => {
+    setLecture(p => ({ ...p, tab }));
+    if (active) {
+      const previous = cache.get(cacheKey(active)) || { variants: {}, messages: [] };
+      cache.set(cacheKey(active), { ...previous, tab });
+    }
   };
 
-  if (loadError) return <p className="notice">학습 목록을 불러오지 못했습니다. 새로고침해 주세요.</p>;
+  if (loadError) return <div className="notice">{loadError}<button className="btn" onClick={() => setReload(n => n + 1)}>다시 불러오기</button></div>;
   if (!catalog) return <p className="muted">학습 목록을 불러오고 있어요…</p>;
-  if (certs.length === 0) return <p className="notice">준비된 강의가 없습니다.</p>;
-
-  const { config } = catalog;
-  const ratio = lessons.length ? done / lessons.length : 0;
+  if (!lessons.length) return <p className="notice">준비된 강의가 없습니다.</p>;
   const index = active ? lessons.indexOf(active) : -1;
-  const currentExplanation = lecture.variants[lecture.tab];
-
-  return (
-    <div className="learning">
-      <div className="learning-main">
-        {practice ? (
-          <PracticePanel cert={cert} lesson={practiceLesson} onBack={() => setPractice(false)} />
-        ) : (
-          <>
-            <h1 className="page-title">{config[cert].label} 개념 학습</h1>
-            <p className="muted">개념을 이해하고, 문제를 풀며 실력을 확인하세요.</p>
-            <ProgressBar value={ratio} label={`${Math.round(ratio * 100)}% · ${done} / ${lessons.length} 완료`} />
-
-            <div className="row three">
-              <button type="button" className="btn btn-ghost" onClick={() => openLesson(lessons[0])}>
-                처음부터 공부하기
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={closeLesson}>
-                특정 단원 선택
-              </button>
-              <button type="button" className="btn btn-ghost" disabled={!last} onClick={() => openLesson(last)}>
-                이어서 공부하기
-              </button>
-            </div>
-
-            {active ? (
-              <>
-                <p className="muted small">{config[cert].topics[active.subject] ?? active.subject}</p>
-                <h2 className="lesson-title">{active.title}</h2>
-
-                <div className="lesson-grid">
-                  <LecturePane
-                    tab={lecture.tab}
-                    onTabChange={(tab) => setLecture((p) => ({ ...p, tab }))}
-                    variants={lecture.variants}
-                    errors={lecture.errors}
-                    loading={lecture.loading}
-                    onRetry={loadVariant}
-                  />
-                  <TutorPane
-                    tab={lecture.tab}
-                    messages={lecture.messages}
-                    canAsk={Boolean(currentExplanation)}
-                    loading={lecture.tutorLoading}
-                    error={lecture.tutorError}
-                    onAsk={(question) =>
-                      askTutor({ question, variant: lecture.tab, explanation: currentExplanation.text })
-                    }
-                    onRetry={() => lecture.pending && askTutor(lecture.pending)}
-                  />
-                </div>
-
-                <div className="row three lesson-nav">
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={index === 0}
-                    onClick={() => openLesson(lessons[index - 1])}
-                  >
-                    이전 항목
-                  </button>
-                  <button type="button" className="btn btn-primary" onClick={completeAndNext}>
-                    학습 완료하고 다음으로
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => {
-                      setPracticeLesson(active);
-                      setPractice(true);
-                    }}
-                  >
-                    이 단원 문제 풀기
-                  </button>
-                </div>
-              </>
-            ) : (
-              <LessonIndex config={config} cert={cert} lessons={lessons} states={states} onOpen={openLesson} />
-            )}
-          </>
-        )}
+  const explanation = lecture.variants[lecture.tab];
+  return <div className="learning"><div className="learning-main">
+    <h1 className="page-title">정보처리기사 개념 학습</h1>
+    <p className="muted">개념을 이해하고, 문제를 풀며 실력을 확인하세요.</p>
+    {progressError && <div role="alert" className="notice">학습 진도를 저장하거나 불러오지 못했습니다. {progressError}
+      <button className="btn" disabled={saving} onClick={() => pendingSave.current ? saveAndMove(pendingSave.current.lesson, pendingSave.current.complete) : setReload(n => n + 1)}>다시 시도</button></div>}
+    <ProgressBar value={done / lessons.length} label={`${Math.round(done / lessons.length * 100)}% · ${done} / ${lessons.length} 완료`} />
+    <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}>
+      <div className="row three">
+        <button className="btn btn-ghost" onClick={() => saveAndMove(lessons[0])}>처음부터 공부하기</button>
+        <button className="btn btn-ghost" onClick={() => changeLesson(null)}>특정 단원 선택</button>
+        <button className="btn btn-ghost" disabled={!last} onClick={() => saveAndMove(last)}>이어서 공부하기</button>
       </div>
-    </div>
-  );
+    </fieldset>
+    {active ? <>
+      <p className="muted small">{catalog.config[CERT].topics[active.subject] || active.subject}</p>
+      <h2 className="lesson-title">{active.title}</h2>
+      <div className="lesson-grid">
+        <LecturePane tab={lecture.tab} onTabChange={changeTab} variants={lecture.variants} errors={lecture.errors} loading={lecture.loading} onRetry={loadVariant} />
+        <TutorPane key={active.id} tab={lecture.tab} messages={lecture.messages} canAsk={Boolean(explanation?.text)} loading={lecture.tutorLoading} error={lecture.tutorError}
+          onAsk={question => askTutor({ question, variant: lecture.tab, explanation: explanation.text })} onRetry={() => lecture.pending && askTutor(lecture.pending)} />
+      </div>
+      <div className="row three lesson-nav">
+        <button className="btn btn-ghost" disabled={saving || index === 0} onClick={() => saveAndMove(lessons[index - 1])}>이전 항목</button>
+        <button className="btn btn-primary" disabled={saving} onClick={() => saveAndMove(active, true)}>{saving ? '진도 저장 중…' : '학습 완료하고 다음으로'}</button>
+        <button className="btn btn-ghost" disabled={saving} onClick={() => onPractice(active)}>이 단원 문제 풀기</button>
+      </div>
+    </> : <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}><LessonIndex config={catalog.config} cert={CERT} lessons={lessons} states={states} onOpen={saveAndMove} /></fieldset>}
+  </div></div>;
 }
