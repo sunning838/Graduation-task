@@ -17,3 +17,6 @@ venv/
 .vscode/
 .DS_Store
 *.bank.lock
+
+#6 TTS 음성 캐시
+backend/storage/audio_cache/
