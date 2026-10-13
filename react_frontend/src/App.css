@@ -4163,3 +4163,512 @@ textarea::placeholder {
   border-radius: 50%;
   animation: quiz-spin 0.8s linear infinite;
 }
+/* =========================================================
+   문제풀이 - 소크라테스 서술형 문답
+   프론트엔드 시연용: 추후 AI/DB 평가 로직으로 교체 가능
+========================================================= */
+.quiz-solution-actions {
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.quiz-socratic-toggle {
+  margin: 0;
+  padding: 9px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.quiz-socratic-toggle:hover,
+.quiz-socratic-toggle.active {
+  border-color: var(--text-muted);
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
+.quiz-socratic-panel {
+  margin-top: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.quiz-socratic-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quiz-socratic-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+}
+
+.quiz-socratic-header h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 16px;
+}
+
+.quiz-socratic-close,
+.quiz-socratic-reset {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.quiz-socratic-close:hover,
+.quiz-socratic-reset:hover {
+  color: var(--text-main);
+}
+
+.quiz-socratic-description {
+  margin: 6px 0 13px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.quiz-socratic-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 9px;
+}
+
+.quiz-socratic-message > div {
+  min-width: 0;
+  max-width: 92%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.quiz-socratic-message.assistant > div {
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+}
+
+.quiz-socratic-message.user {
+  justify-content: flex-end;
+}
+
+.quiz-socratic-message.user > div {
+  background: var(--bg-message);
+  color: var(--text-main);
+}
+
+.quiz-socratic-message strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-main);
+  font-size: 11px;
+}
+
+.quiz-socratic-message p {
+  margin: 0;
+}
+
+.quiz-socratic-avatar {
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  border: 1px solid var(--border-light);
+  border-radius: 50%;
+  background: var(--bg-soft);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.quiz-socratic-input-wrap {
+  margin-top: 12px;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg-input);
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.quiz-socratic-input-wrap textarea {
+  flex: 1;
+  min-height: 66px;
+  max-height: 130px;
+  padding: 7px 8px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.quiz-socratic-input-wrap textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.quiz-socratic-input-wrap button {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--send-bg);
+  color: var(--send-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.quiz-socratic-input-wrap button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.quiz-socratic-complete {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(63, 166, 106, 0.4);
+  border-radius: 10px;
+  background: rgba(63, 166, 106, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.quiz-socratic-complete strong {
+  color: #45b875;
+  font-size: 12px;
+}
+
+.quiz-socratic-complete span {
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.quiz-socratic-reset {
+  margin-top: 9px;
+  padding: 0;
+}
+
+@media (max-width: 620px) {
+  .quiz-solution-actions {
+    flex-wrap: wrap;
+  }
+
+  .quiz-socratic-toggle,
+  .quiz-solution-actions .quiz-next-button {
+    flex: 1 1 140px;
+  }
+
+  .quiz-socratic-input-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quiz-socratic-input-wrap button {
+    align-self: flex-end;
+  }
+}
+
+
+/* =========================================================
+   소크라테스 문답 / AI 해설 동일 영역 전환
+========================================================= */
+.quiz-solution-panel .quiz-socratic-panel {
+  min-height: 0;
+}
+
+.quiz-solution-panel .quiz-socratic-panel .quiz-socratic-message:first-child {
+  margin-top: 0;
+}
+
+.quiz-socratic-toggle.active {
+  border-color: var(--border-light);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.quiz-socratic-toggle.active:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
+
+/* =========================================================
+   취약점 개념 요약 - 과목 선택형 개념 노트
+========================================================= */
+
+.wrongnote-top-item {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.wrongnote-top-item:hover {
+  background: var(--bg-soft);
+  border-color: var(--border-light);
+  transform: translateY(-1px);
+}
+
+.wrongnote-top-item.active {
+  border-color: #e0a358;
+  background: rgba(224, 163, 88, 0.08);
+}
+
+.wrongnote-top-item.active .wrongnote-top-rank {
+  background: #e0a358;
+  color: #171717;
+}
+
+.wrongnote-top-item.active .wrongnote-top-info strong {
+  color: var(--text-main);
+}
+
+.wrongnote-selected-note {
+  margin-top: 12px;
+}
+
+.wrongnote-selected-note-heading {
+  margin-bottom: 8px;
+  padding: 0 2px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wrongnote-selected-note-heading h2 {
+  margin: 3px 0 0;
+  color: var(--text-main);
+  font-size: 19px;
+}
+
+.wrongnote-selected-accuracy {
+  flex-shrink: 0;
+  padding: 5px 9px;
+
+  border: 1px solid rgba(224, 163, 88, 0.45);
+  border-radius: 18px;
+
+  background: rgba(224, 163, 88, 0.08);
+  color: #e0a358;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.wrongnote-card-selected {
+  width: 100%;
+  padding: 20px 22px;
+}
+
+.wrongnote-note-meta {
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--border);
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.wrongnote-note-warning {
+  margin: 11px 0 0;
+  padding: 8px 10px;
+
+  border: 1px solid rgba(224, 163, 88, 0.3);
+  border-radius: 9px;
+
+  background: rgba(224, 163, 88, 0.06);
+  color: var(--text-secondary);
+
+  font-size: 10px;
+}
+
+.summary-markdown-selected {
+  max-width: 920px;
+  margin: 18px auto 4px;
+
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.summary-markdown-selected > *:first-child {
+  margin-top: 0;
+}
+
+.summary-markdown-selected h1,
+.summary-markdown-selected h2,
+.summary-markdown-selected h3 {
+  color: var(--text-main);
+  line-height: 1.45;
+}
+
+.summary-markdown-selected h1 {
+  margin: 26px 0 12px;
+  font-size: 22px;
+}
+
+.summary-markdown-selected h2 {
+  margin: 24px 0 10px;
+  font-size: 19px;
+}
+
+.summary-markdown-selected h3 {
+  margin: 21px 0 9px;
+  font-size: 16px;
+}
+
+.summary-markdown-selected p {
+  margin: 9px 0;
+}
+
+.summary-markdown-selected ul,
+.summary-markdown-selected ol {
+  margin: 10px 0;
+  padding-left: 23px;
+}
+
+.summary-markdown-selected li {
+  margin: 6px 0;
+}
+
+.summary-markdown-selected strong {
+  color: var(--text-main);
+}
+
+.summary-markdown-selected code {
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-soft);
+}
+
+.summary-markdown-selected pre {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.wrongnote-empty-selected {
+  padding: 26px 20px;
+
+  border: 1px dashed var(--border-light);
+  border-radius: 14px;
+
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.wrongnote-empty-selected strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.wrongnote-empty-selected p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 800px) {
+  .wrongnote-selected-note-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .wrongnote-card-selected {
+    padding: 16px;
+  }
+
+  .summary-markdown-selected {
+    font-size: 13px;
+  }
+}
+
+
+
+
+/* =========================================================
+   문제풀이 결과 카드 높이
+   - 서술해보기: 좌우 높이 동일
+   - AI 해설: 내용 높이만큼만 표시
+========================================================= */
+@media (min-width: 1051px) {
+  /* 기본 해설 화면은 각 카드가 콘텐츠 높이만큼만 표시 */
+  .quiz-workspace.has-result {
+    align-items: start;
+  }
+
+  .quiz-workspace.has-result .quiz-question-panel,
+  .quiz-workspace.has-result .quiz-solution-panel {
+    height: auto;
+    min-height: 0;
+  }
+
+  .quiz-workspace.has-result .quiz-solution-panel {
+    max-height: none;
+    position: relative;
+    top: auto;
+  }
+
+  /* 서술해보기 화면일 때만 좌우 카드 높이를 맞춤 */
+  .quiz-workspace.has-result.socratic-active {
+    align-items: stretch;
+  }
+
+  .quiz-workspace.has-result.socratic-active .quiz-question-panel,
+  .quiz-workspace.has-result.socratic-active .quiz-solution-panel {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .quiz-workspace.has-result.socratic-active .quiz-solution-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .quiz-workspace.has-result.socratic-active .quiz-socratic-panel {
+    flex: 1;
+  }
+
+  .quiz-workspace.has-result.socratic-active .quiz-solution-actions {
+    margin-top: auto;
+  }
+}

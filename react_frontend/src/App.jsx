@@ -83,6 +83,13 @@ function App() {
   const [quizError, setQuizError] = useState("");
   const [lessonPractice, setLessonPractice] = useState(null);
   const [learningReturnId, setLearningReturnId] = useState(null);
+
+  // 문제풀이 소크라테스 문답 상태
+  // 현재는 프론트엔드 시연용이며, 추후 AI/DB 연동 시 실제 이해도 판정으로 교체할 수 있습니다.
+  const [socraticOpen, setSocraticOpen] = useState(false);
+  const [socraticAnswer, setSocraticAnswer] = useState("");
+  const [socraticMessages, setSocraticMessages] = useState([]);
+  const [socraticCompleted, setSocraticCompleted] = useState(false);
   // =========================================================
   // =========================================================
   // 취약점 학습 상태
@@ -141,6 +148,54 @@ function App() {
     setActiveArea("practice");
     setCurrentPage("chat");
   };
+
+  const resetSocraticPractice = () => {
+    setSocraticOpen(false);
+    setSocraticAnswer("");
+    setSocraticMessages([]);
+    setSocraticCompleted(false);
+  };
+
+  const submitSocraticAnswer = () => {
+    const answer = socraticAnswer.trim();
+    if (!answer || socraticCompleted) return;
+
+    const previousUserTurns = socraticMessages.filter(message => message.role === "user").length;
+    const userMessage = {
+      id: `${Date.now()}-socratic-user`,
+      role: "user",
+      content: answer,
+    };
+
+    if (previousUserTurns === 0) {
+      const followUp = answer.length < 35
+        ? "좋아요. 한 단계 더 구체적으로 설명해볼까요? 정답 선택지가 왜 맞는지 핵심 용어나 원리를 포함해서 적어보세요."
+        : "좋아요. 이제 오답 선택지 중 하나를 골라, 그 선택지가 왜 틀렸는지도 자신의 말로 설명해볼까요?";
+
+      setSocraticMessages(prev => [
+        ...prev,
+        userMessage,
+        {
+          id: `${Date.now()}-socratic-assistant`,
+          role: "assistant",
+          content: followUp,
+        },
+      ]);
+    } else {
+      setSocraticMessages(prev => [
+        ...prev,
+        userMessage,
+        {
+          id: `${Date.now()}-socratic-complete`,
+          role: "assistant",
+          content: "좋습니다. 정답의 근거와 오답의 이유를 자신의 말로 설명해봤어요. 이렇게 설명할 수 있으면 단순 암기보다 개념을 더 오래 기억하는 데 도움이 됩니다.",
+        },
+      ]);
+      setSocraticCompleted(true);
+    }
+
+    setSocraticAnswer("");
+  };
   const changeCertification = label => {
     if (label === selectedCert) return;
     // 자격증 변경 시 대화 기록만 초기화하며 프로필/학습실 위치는 유지합니다.
@@ -155,12 +210,14 @@ function App() {
     setSelectedAnswer(null);
     setQuizResult(null);
     setQuizError("");
+    resetSocraticPractice();
     setSelectedCert(label);
     setLessonPractice(null);
   };
   const loadQuiz = async (requestedLesson = null) => {
     const scope = requestedLesson?.id ? requestedLesson : null;
     setCurrentPage("quiz");
+    resetSocraticPractice();
     if (quizRequest.current || submitRequest.current) return;
     setLessonPractice(scope);
     if (!scope && !selectedCertId) {
@@ -456,7 +513,7 @@ function App() {
                 <p>출제 후 검수까지 진행하므로 잠시 시간이 걸릴 수 있습니다.</p>
               </div>}
             {!quizLoading && quizError && <div className="quiz-error">{quizError}</div>}
-            {!quizLoading && quiz && <div className={`quiz-workspace ${quizResult ? "has-result" : ""}`}>
+            {!quizLoading && quiz && <div className={`quiz-workspace ${quizResult ? "has-result" : ""} ${socraticOpen ? "socratic-active" : ""}`}>
                 {/* 왼쪽: 원래 문제 */}
                 <div className="quiz-card quiz-question-panel">
                   <div className="quiz-meta">
@@ -510,20 +567,111 @@ function App() {
                         </p>}
                     </div>}
                 </div>
-                {/* 오른쪽: 답 제출 후 AI 해설 */}
+                {/* 오른쪽: AI 해설 / 소크라테스 문답을 같은 자리에서 전환 */}
                 {quizResult && <aside className="quiz-solution-panel">
                     <div className="quiz-solution-header">
-                      <span className="quiz-solution-label">AI SOLUTION</span>
-                      <h2>AI 해설</h2>
-                      <p>문제와 비교하면서 해설을 확인해보세요.</p>
+                      <span className="quiz-solution-label">
+                        {socraticOpen ? "SOCRATIC REVIEW" : "AI SOLUTION"}
+                      </span>
+                      <h2>{socraticOpen ? "서술해보기" : "AI 해설"}</h2>
+                      <p>
+                        {socraticOpen
+                          ? "정답을 외우는 대신, 문제의 핵심 개념을 자신의 말로 설명해보세요."
+                          : "문제와 비교하면서 해설을 확인해보세요."}
+                      </p>
                     </div>
-                    <div className="quiz-explanation quiz-explanation-side">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {quizResult.explanation}
-                      </ReactMarkdown>
-                    </div>
+
+                    {!socraticOpen ? (
+                      <div className="quiz-explanation quiz-explanation-side">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {quizResult.explanation}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="quiz-socratic-panel">
+                        <div className="quiz-socratic-message assistant">
+                          <span className="quiz-socratic-avatar">AI</span>
+                          <div>
+                            <strong>먼저 이렇게 설명해볼까요?</strong>
+                            <p>
+                              “{quiz.topic_label}”에서 이 문제가 묻는 핵심 개념은 무엇이고,
+                              왜 {quizResult.correct_answer}번이 정답인지 자신의 말로 설명해보세요.
+                            </p>
+                          </div>
+                        </div>
+
+                        {socraticMessages.map(message => (
+                          <div
+                            key={message.id}
+                            className={`quiz-socratic-message ${message.role}`}
+                          >
+                            {message.role === "assistant" && (
+                              <span className="quiz-socratic-avatar">AI</span>
+                            )}
+                            <div>
+                              {message.role === "user" && <strong>나의 설명</strong>}
+                              <p>{message.content}</p>
+                            </div>
+                          </div>
+                        ))}
+
+                        {!socraticCompleted && (
+                          <div className="quiz-socratic-input-wrap">
+                            <textarea
+                              value={socraticAnswer}
+                              onChange={event => setSocraticAnswer(event.target.value)}
+                              placeholder="내가 이해한 내용을 서술해보세요..."
+                              rows={3}
+                            />
+                            <button
+                              type="button"
+                              onClick={submitSocraticAnswer}
+                              disabled={!socraticAnswer.trim()}
+                            >
+                              설명 제출
+                            </button>
+                          </div>
+                        )}
+
+                        {socraticCompleted && (
+                          <div className="quiz-socratic-complete">
+                            <strong>설명 학습 완료</strong>
+                            <span>
+                              현재는 프론트엔드 시연용입니다. 실제 이해도 판정은 추후
+                              AI/DB 연동 시 연결할 수 있습니다.
+                            </span>
+                          </div>
+                        )}
+
+                        {socraticMessages.length > 0 && (
+                          <button
+                            type="button"
+                            className="quiz-socratic-reset"
+                            onClick={() => {
+                              setSocraticAnswer("");
+                              setSocraticMessages([]);
+                              setSocraticCompleted(false);
+                            }}
+                          >
+                            처음부터 다시 설명하기
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     <div className="quiz-solution-actions">
-                      <button type="button" className="quiz-next-button" onClick={() => loadQuiz(lessonPractice)}>
+                      <button
+                        type="button"
+                        className={`quiz-socratic-toggle ${socraticOpen ? "active" : ""}`}
+                        onClick={() => setSocraticOpen(prev => !prev)}
+                      >
+                        {socraticOpen ? "💡 해설보기" : "✎ 서술해보기"}
+                      </button>
+                      <button
+                        type="button"
+                        className="quiz-next-button"
+                        onClick={() => loadQuiz(lessonPractice)}
+                      >
                         다음 문제
                       </button>
                     </div>
