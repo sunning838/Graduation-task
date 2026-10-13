@@ -543,3 +543,15 @@
 .audio-segment .markdown > :last-child {
   margin-bottom: 0;
 }
+
+/* 학습 목록 불러오는 중: 화면 가운데 + 로딩 동그라미 */
+.learn-loading {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.learn-loading .quiz-loading {
+  margin: 0;
+}

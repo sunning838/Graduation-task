@@ -268,20 +268,10 @@ function App() {
             {!sidebarCollapsed && <span>{studyMode ? "문제풀이로 가기" : "개념 학습으로 돌아가기"}</span>}
           </button>
           <div className="sidebar-header">
-            {!sidebarCollapsed && <div className="logo">
-                AI Tutor
-              </div>}
             <button type="button" className="sidebar-toggle" onClick={() => setSidebarCollapsed(prev => !prev)} title={sidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}>
               {sidebarCollapsed ? "›" : "‹"}
             </button>
           </div>
-          {/* 새 대화 */}
-          {!studyMode && <button type="button" className="new-chat-button" onClick={newChat}>
-            <span>＋</span>
-            {!sidebarCollapsed && <span>
-                새 대화
-              </span>}
-          </button>}
           {/* 메뉴 */}
           <nav className="menu">
             {studyMode ? <>
@@ -334,7 +324,7 @@ function App() {
         {/* Header */}
         <header className="header">
           <button type="button" className="header-title header-home-button" onClick={goHome} title="홈으로">
-            {currentPage === "home" ? "자격증 AI 학습실" : "안양대학교 AI Tutor"}
+            안양대학교 AI Tutor
           </button>
           <button type="button" className="theme-toggle" onClick={() => setDarkMode(prev => !prev)} title={darkMode ? "라이트 모드" : "다크 모드"}>
             {darkMode ? "☀" : "☾"}
@@ -380,14 +370,35 @@ function App() {
                             </ReactMarkdown> : message.content}
                         </div>
                       </div>)}
+                                            
+                  {chatLoading && <div className="message-row assistant" role="status">
+                      <div className="assistant-avatar">
+                        AI
+                      </div>
+                      <div className="message chat-typing">
+                        <span className="chat-typing-spinner" />
+                        답변을 준비하고 있습니다.
+                      </div>
+                    </div>}
+                
                 </div>}
             </section>
             {/* 채팅 입력 */}
             <div className="input-section">
               {connectionError && <div role="alert">{connectionError} <button type="button" onClick={() => setCertReload(value => value + 1)}>연결 다시 확인</button></div>}
               {chatError && <div role="alert">{chatError}</div>}
-              {chatLoading && <div role="status">답변을 준비하고 있습니다.</div>}
-              <div className="answer-length-control">
+            
+                                          <div className="answer-length-control">
+                <button
+                  type="button"
+                  className="chat-reset-button"
+                  onClick={() => {
+                    if (messages.length === 0 && !chatError) return;
+                    if (window.confirm("대화 내용을 모두 지울까요?")) resetChat();
+                  }}
+                >
+                  대화 초기화
+                </button>
                 <span className="answer-length-label">
                   답변 길이
                 </span>
@@ -401,6 +412,7 @@ function App() {
                   자세히
                 </button>
               </div>
+                
               <div className="input-container">
                 <textarea disabled={chatLoading} maxLength={8000} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="AI 튜터에게 질문해보세요" rows={1} />
                 <button type="button" className="send-button" onClick={sendMessage} disabled={!input.trim() || chatLoading || !selectedCertId}>

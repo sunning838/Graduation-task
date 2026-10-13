@@ -87,7 +87,7 @@ export default function AudioLecture({ lessonId, variant, message }) {
         {header}
         <div className="audio-start">
           <button type="button" className="btn btn-ghost" onClick={generate} disabled={loading}>
-            {loading ? '음성 강의를 만들고 있어요… 처음에는 1~2분 걸릴 수 있어요' : 'AI 음성 강의로 듣기'}
+            {loading ? '음성 강의를 만드는 중입니다.' : 'AI 음성 강의로 듣기'}
           </button>
           {error && (
             <p className="form-error" role="alert">

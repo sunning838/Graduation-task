@@ -153,7 +153,15 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
   };
 
   if (loadError) return <div className="notice">{loadError}<button className="btn" onClick={() => setReload(n => n + 1)}>다시 불러오기</button></div>;
-  if (!catalog) return <p className="muted">학습 목록을 불러오고 있어요…</p>;
+ if (!catalog)
+  return (
+    <div className="learn-loading">
+      <div className="quiz-loading">
+        <div className="quiz-loading-spinner" />
+        <h3>학습 목록을 불러오고 있어요</h3>
+      </div>
+    </div>
+  );
   if (!lessons.length) return <p className="notice">준비된 강의가 없습니다.</p>;
   const index = active ? lessons.indexOf(active) : -1;
   const explanation = lecture.variants[lecture.tab];
