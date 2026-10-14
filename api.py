@@ -19,6 +19,7 @@ from backend.learning_stats import learning_stats
 from backend.summary_notes import summary_view, generate_summaries
 from backend import mock_exams
 from backend import mock_preparation
+from backend import socratic
 
 LOG = logging.getLogger(__name__)
 app = FastAPI(title='자격증 AI 튜터 API')
@@ -111,6 +112,30 @@ class QuizSubmitRequest(BaseModel):
     attempt_id: Identifier | None = None
     quiz_id: Identifier | None = None  # Compatibility with the previous client.
     selected_answer: int = Field(strict=True, ge=1)
+
+
+class SocraticRequest(BaseModel):
+    attempt_id: Identifier
+    session_id: Identifier
+    request_id: Identifier
+    revision: int = Field(strict=True, ge=0, le=20)
+    answer: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
+
+
+@app.get('/api/quiz/{attempt_id}/socratic/{session_id}')
+def socratic_history(attempt_id: str, session_id: str, store: APIStore = Depends(get_store)):
+    return socratic.history(store, attempt_id, session_id)
+
+
+@app.post('/api/quiz/socratic')
+def socratic_answer(request: SocraticRequest, store: APIStore = Depends(get_store)):
+    try:
+        return socratic.evaluate(store, get_engine, request)
+    except StateError:
+        raise
+    except Exception:
+        LOG.exception('Socratic evaluation failed')
+        fail(502, 'SOCRATIC_FAILED', '설명을 평가하지 못했습니다. 답안을 유지했으니 다시 제출해 주세요.', True)
 
 
 def certification(cert):

@@ -15,8 +15,10 @@ class APIStore:
     def __init__(self, path):
         self.path = str(path)
         from backend.mock_exams import SCHEMA as MOCK_SCHEMA
+        from backend.socratic import SCHEMA as SOCRATIC_SCHEMA
         with self.connect() as db:
             db.executescript(MOCK_SCHEMA)
+            db.executescript(SOCRATIC_SCHEMA)
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS quiz_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, cert TEXT, topic TEXT,

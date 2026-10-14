@@ -32,6 +32,7 @@ function App() {
   const chatRequest = useRef(null);
   const quizRequest = useRef(null);
   const submitRequest = useRef(null);
+  const socraticRequest = useRef(null);
   const selectedCertId = certifications.find(cert => cert.label === selectedCert)?.id;
 
   useEffect(() => {
@@ -51,6 +52,7 @@ function App() {
     chatRequest.current?.abort();
     quizRequest.current?.abort();
     submitRequest.current?.abort();
+    socraticRequest.current?.abort();
   }, []);
 
   // =========================================================
@@ -85,7 +87,11 @@ function App() {
   const [learningReturnId, setLearningReturnId] = useState(null);
 
   // 문제풀이 소크라테스 문답 상태
-  // 현재는 프론트엔드 시연용이며, 추후 AI/DB 연동 시 실제 이해도 판정으로 교체할 수 있습니다.
+  // 평가 결과와 문답은 서버에 저장하며 객관식 통계와 분리합니다.
+  const socraticSession = useRef(null);
+  const socraticPending = useRef(null);
+  const [socraticLoading, setSocraticLoading] = useState(false);
+  const [socraticError, setSocraticError] = useState("");
   const [socraticOpen, setSocraticOpen] = useState(false);
   const [socraticAnswer, setSocraticAnswer] = useState("");
   const [socraticMessages, setSocraticMessages] = useState([]);
@@ -143,58 +149,71 @@ function App() {
     setMessages([]);
     setInput("");
   };
-  const newChat = () => {
-    resetChat();
-    setActiveArea("practice");
-    setCurrentPage("chat");
-  };
 
   const resetSocraticPractice = () => {
+    socraticRequest.current?.abort();
+    socraticRequest.current = null;
+    socraticSession.current = { id: crypto.randomUUID(), revision: 0 };
+    socraticPending.current = null;
+    setSocraticLoading(false);
+    setSocraticError("");
     setSocraticOpen(false);
     setSocraticAnswer("");
     setSocraticMessages([]);
     setSocraticCompleted(false);
   };
 
-  const submitSocraticAnswer = () => {
+  const submitSocraticAnswer = async () => {
     const answer = socraticAnswer.trim();
-    if (!answer || socraticCompleted) return;
-
-    const previousUserTurns = socraticMessages.filter(message => message.role === "user").length;
-    const userMessage = {
-      id: `${Date.now()}-socratic-user`,
-      role: "user",
-      content: answer,
-    };
-
-    if (previousUserTurns === 0) {
-      const followUp = answer.length < 35
-        ? "좋아요. 한 단계 더 구체적으로 설명해볼까요? 정답 선택지가 왜 맞는지 핵심 용어나 원리를 포함해서 적어보세요."
-        : "좋아요. 이제 오답 선택지 중 하나를 골라, 그 선택지가 왜 틀렸는지도 자신의 말로 설명해볼까요?";
-
-      setSocraticMessages(prev => [
-        ...prev,
-        userMessage,
-        {
-          id: `${Date.now()}-socratic-assistant`,
-          role: "assistant",
-          content: followUp,
-        },
-      ]);
-    } else {
-      setSocraticMessages(prev => [
-        ...prev,
-        userMessage,
-        {
-          id: `${Date.now()}-socratic-complete`,
-          role: "assistant",
-          content: "좋습니다. 정답의 근거와 오답의 이유를 자신의 말로 설명해봤어요. 이렇게 설명할 수 있으면 단순 암기보다 개념을 더 오래 기억하는 데 도움이 됩니다.",
-        },
-      ]);
-      setSocraticCompleted(true);
+    if (!answer || socraticCompleted || socraticRequest.current || !quiz?.attempt_id) return;
+    if (!socraticSession.current) socraticSession.current = { id: crypto.randomUUID(), revision: 0 };
+    const session = socraticSession.current;
+    // Keep the request ID on retry: a lost response must not create a second turn.
+    if (!socraticPending.current || socraticPending.current.answer !== answer) {
+      socraticPending.current = { request_id: crypto.randomUUID(), answer };
     }
-
-    setSocraticAnswer("");
+    const controller = new AbortController();
+    socraticRequest.current = controller;
+    setSocraticLoading(true);
+    setSocraticError("");
+    try {
+      const data = await apiRequest("/api/quiz/socratic", {
+        signal: controller.signal,
+        body: { attempt_id: quiz.attempt_id, session_id: session.id,
+          revision: session.revision, ...socraticPending.current },
+      });
+      if (socraticRequest.current !== controller) return;
+      session.revision = data.revision;
+      socraticPending.current = null;
+      setSocraticMessages(prev => [...prev,
+        { id: `${session.id}-${data.revision}-user`, role: "user", content: answer },
+        { id: `${session.id}-${data.revision}-assistant`, role: "assistant",
+          content: [data.acknowledgment, data.question].filter(Boolean).join("\n\n") },
+      ]);
+      setSocraticCompleted(data.status === "complete");
+      setSocraticAnswer("");
+    } catch (error) {
+      if (socraticRequest.current !== controller || error.name === "AbortError") return;
+      setSocraticError(error.message);
+      // Recover committed history after a concurrent request or a lost response.
+      try {
+        const data = await apiRequest(`/api/quiz/${quiz.attempt_id}/socratic/${session.id}`, { signal: controller.signal });
+        if (socraticRequest.current !== controller) return;
+        session.revision = data.revision;
+        socraticPending.current = null;
+        setSocraticCompleted(data.completed);
+        setSocraticMessages(data.turns.flatMap((turn, index) => [
+          { id: `${index}-user`, role: "user", content: turn.answer },
+          { id: `${index}-assistant`, role: "assistant", content: [turn.acknowledgment, turn.question].filter(Boolean).join("\n\n") },
+        ]));
+        if (data.turns.at(-1)?.answer === answer) { setSocraticAnswer(""); setSocraticError(""); }
+      } catch { /* Keep the answer and idempotency key for retry if offline. */ }
+    } finally {
+      if (socraticRequest.current === controller) {
+        socraticRequest.current = null;
+        setSocraticLoading(false);
+      }
+    }
   };
   const changeCertification = label => {
     if (label === selectedCert) return;
@@ -610,14 +629,18 @@ function App() {
                             )}
                             <div>
                               {message.role === "user" && <strong>나의 설명</strong>}
-                              <p>{message.content}</p>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                             </div>
                           </div>
                         ))}
 
+                        {socraticError && <p role="alert">{socraticError}</p>}
+                        {socraticLoading && <p role="status">설명을 평가하고 있습니다…</p>}
                         {!socraticCompleted && (
                           <div className="quiz-socratic-input-wrap">
                             <textarea
+                              maxLength={4000}
+                              disabled={socraticLoading}
                               value={socraticAnswer}
                               onChange={event => setSocraticAnswer(event.target.value)}
                               placeholder="내가 이해한 내용을 서술해보세요..."
@@ -626,7 +649,7 @@ function App() {
                             <button
                               type="button"
                               onClick={submitSocraticAnswer}
-                              disabled={!socraticAnswer.trim()}
+                              disabled={socraticLoading || !socraticAnswer.trim()}
                             >
                               설명 제출
                             </button>
@@ -637,20 +660,18 @@ function App() {
                           <div className="quiz-socratic-complete">
                             <strong>설명 학습 완료</strong>
                             <span>
-                              현재는 프론트엔드 시연용입니다. 실제 이해도 판정은 추후
-                              AI/DB 연동 시 연결할 수 있습니다.
+                              AI가 핵심 개념과 정답 근거를 설명했다고 평가했습니다. 문답 기록을 저장했습니다.
                             </span>
                           </div>
                         )}
 
-                        {socraticMessages.length > 0 && (
+                        {(socraticMessages.length > 0 || socraticError) && (
                           <button
                             type="button"
                             className="quiz-socratic-reset"
                             onClick={() => {
-                              setSocraticAnswer("");
-                              setSocraticMessages([]);
-                              setSocraticCompleted(false);
+                              resetSocraticPractice();
+                              setSocraticOpen(true);
                             }}
                           >
                             처음부터 다시 설명하기
