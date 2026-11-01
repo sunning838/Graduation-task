@@ -69,3 +69,12 @@ React 전용 검사는 기존 `react_frontend/scripts`에서 관리합니다.
 
 실제 Gemini 생성 품질과 시간은 별도 실제 실행 확인이 필요합니다. 자동 테스트는 모의 AI를 사용합니다.
 AudioLecture.jsx, 기존 음성 api.js, TTS 경로·음성 요청 형식은 이번 연동에서 변경하지 않았습니다.
+## 슬라이드 강의와 실시간 이미지 검증
+
+- `python -m unittest backend.test.test_lecture_presentation -v`: 외부 API 없이 장면 근거·중복 요청·캐시·재시도·API 계약을 검증합니다. 전체 `python -m backend.test`에도 포함됩니다.
+- `python -m backend.test.presentation_live_smoke --run-live`: 기존 Gemini 키로 그림 한 장 생성과 검수를 확인하는 선택 실행입니다. `--two-slides`를 추가하면 두 슬라이드에 그림이 한 장씩 생성되는지 확인합니다. 검수 보정 시 장당 이미지 생성 API를 최대 두 번 호출하며 사용료가 발생할 수 있습니다. 실패 결과를 재시도하려면 `--retry`를 추가합니다.
+- `node backend/test/check_presentation_ui.mjs`: Playwright와 Chrome이 있는 개발 환경에서 화면 검증을 실행합니다. React는 5188 포트로 실행하고, 필요하면 `PRESENTATION_TEST_URL`을 지정합니다. 이 검증은 API·음성을 테스트용 데이터로 대체하며 실제 생성 비용이 없습니다.
+- 위 스크립트의 `--live-cache`는 앞서 라이브 시험으로 생성한 그림을 API 서버(기본 8018)에서 읽어 표시합니다. 새 그림은 생성하지 않습니다. `PRESENTATION_TEST_API_URL`로 서버 주소를 바꿀 수 있습니다.
+- 브라우저 시험에는 Playwright가 필요합니다. 별도 Node 패키지 디렉터리를 사용하면 `PRESENTATION_TEST_NODE_MODULES`를 지정하고, Chrome 경로는 `CHROME_PATH`로 지정할 수 있습니다.
+
+시험 결과 JSON과 화면 캡처는 이 테스트 폴더 아래 `.presentation-live.json`, `.presentation-ui/`에 저장되며 Git에 포함되지 않습니다. 이 파일들과 테스트 스크립트는 서비스 실행에 필요하지 않습니다.

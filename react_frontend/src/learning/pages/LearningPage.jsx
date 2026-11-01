@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as api from '../api/lessonClient.js';
 import LessonIndex from '../components/LessonIndex.jsx';
-import LecturePane, { DEFAULT_VARIANT } from '../components/LecturePane.jsx';
+import LecturePane from '../components/LecturePane.jsx';
+import { DEFAULT_VARIANT } from '../components/lectureVariants.js';
 import TutorPane from '../components/TutorPane.jsx';
+import TutorDrawer from '../components/TutorDrawer.jsx';
 import ProgressBar from '../components/ProgressBar.jsx';
 
 const LEARNER = '내 학습';
@@ -21,6 +23,7 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
   const [activeId, setActiveId] = useState(returnLessonId || null);
   const activeIdRef = useRef(returnLessonId || null);
   const [lecture, setLecture] = useState(emptyLecture);
+  const [tutorOpen, setTutorOpen] = useState(false);
   const visit = useRef(0);
   const inflight = useRef(new Map());
   const progressLock = useRef(false);
@@ -58,6 +61,7 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
   }, [reload]);
 
   const changeLesson = lesson => {
+    setTutorOpen(false);
     visit.current += 1;
     inflight.current.forEach(controller => controller.abort()); inflight.current.clear();
     tutorLock.current = false;
@@ -165,26 +169,28 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
   if (!lessons.length) return <p className="notice">준비된 강의가 없습니다.</p>;
   const index = active ? lessons.indexOf(active) : -1;
   const explanation = lecture.variants[lecture.tab];
-  return <div className="learning"><div className="learning-main">
-    <h1 className="page-title">정보처리기사 개념 학습</h1>
-    <p className="muted">개념을 이해하고, 문제를 풀며 실력을 확인하세요.</p>
+  return <div className={`learning${active ? ' is-presenting' : ''}`}><div className="learning-main">
+    {active ? <div className="presentation-lesson-heading">
+      <div><p className="muted small">정보처리기사 · {catalog.config[CERT].topics[active.subject] || active.subject}</p><h1>{active.title}</h1></div>
+      <div className="presentation-study-actions"><span>학습 진도 {done} / {lessons.length} · {Math.round(done / lessons.length * 100)}%</span><button className="btn btn-ghost" type="button" disabled={saving} onClick={() => changeLesson(null)}>학습 목차</button></div>
+    </div> : <><h1 className="page-title">정보처리기사 개념 학습</h1><p className="muted">개념을 이해하고, 문제를 풀며 실력을 확인하세요.</p></>}
     {progressError && <div role="alert" className="notice">학습 진도를 저장하거나 불러오지 못했습니다. {progressError}
       <button className="btn" disabled={saving} onClick={() => pendingSave.current ? saveAndMove(pendingSave.current.lesson, pendingSave.current.complete) : setReload(n => n + 1)}>다시 시도</button></div>}
-    <ProgressBar value={done / lessons.length} label={`${Math.round(done / lessons.length * 100)}% · ${done} / ${lessons.length} 완료`} />
+    {!active && <><ProgressBar value={done / lessons.length} label={`${Math.round(done / lessons.length * 100)}% · ${done} / ${lessons.length} 완료`} />
     <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}>
       <div className="row three">
         <button className="btn btn-ghost" onClick={() => saveAndMove(lessons[0])}>처음부터 공부하기</button>
         <button className="btn btn-ghost" onClick={() => changeLesson(null)}>특정 단원 선택</button>
         <button className="btn btn-ghost" disabled={!last} onClick={() => saveAndMove(last)}>이어서 공부하기</button>
       </div>
-    </fieldset>
+    </fieldset></>}
     {active ? <>
-      <p className="muted small">{catalog.config[CERT].topics[active.subject] || active.subject}</p>
-      <h2 className="lesson-title">{active.title}</h2>
-      <div className="lesson-grid">
-        <LecturePane tab={lecture.tab} onTabChange={changeTab} variants={lecture.variants} errors={lecture.errors} loading={lecture.loading} onRetry={loadVariant} />
+      <div className="presentation-shell">
+        <LecturePane tab={lecture.tab} onTabChange={changeTab} variants={lecture.variants} errors={lecture.errors} loading={lecture.loading} onRetry={loadVariant} onOpenTutor={() => setTutorOpen(true)} />
+        <TutorDrawer open={tutorOpen} onClose={() => setTutorOpen(false)}>
         <TutorPane key={active.id} tab={lecture.tab} messages={lecture.messages} canAsk={Boolean(explanation?.text)} loading={lecture.tutorLoading} error={lecture.tutorError}
           onAsk={question => askTutor({ question, variant: lecture.tab, explanation: explanation.text })} onRetry={() => lecture.pending && askTutor(lecture.pending)} />
+        </TutorDrawer>
       </div>
       <div className="row three lesson-nav">
         <button className="btn btn-ghost" disabled={saving || index === 0} onClick={() => saveAndMove(lessons[index - 1])}>이전 항목</button>

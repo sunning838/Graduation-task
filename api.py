@@ -325,3 +325,6 @@ def submit_quiz(request: QuizSubmitRequest, store: APIStore = Depends(get_store)
 
 from backend.learning_routes import router as learning_router
 app.include_router(learning_router)
+
+from backend.presentation_routes import router as presentation_router
+app.include_router(presentation_router)

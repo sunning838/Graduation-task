@@ -1,5 +1,5 @@
 // Text learning uses the shared API client; the team's audio client is unchanged.
-import { apiRequest } from '../../api.js';
+import { apiRequest, apiUrl } from '../../api.js';
 
 export const variants = { '기본 설명': 'basic', '쉬운 설명': 'simple', '예시로 이해하기': 'example' };
 export async function getCatalog(signal) {
@@ -21,3 +21,13 @@ export async function teach(lessonId, variant, signal, question = null) {
   if (typeof data.text !== 'string' || !data.text.trim()) throw new Error('설명을 준비하지 못했습니다.');
   return { ...data, lessonId };
 }
+
+export const startPresentation = (lessonId, variant, text, signal) => apiRequest('/api/learning/presentations', {
+  signal, body: { lesson_id: lessonId, variant: variants[variant], text },
+});
+export const getPresentation = (id, signal) => apiRequest(`/api/learning/presentations/${id}`, { signal });
+export const retryPresentation = (id, signal) => apiRequest(`/api/learning/presentations/${id}/retry`, { signal, body: {} });
+export const createLectureAudio = (lessonId, variant, text, signal) => apiRequest('/api/learning/tts', {
+  signal, body: { lesson_id: lessonId, variant: variants[variant], text },
+});
+export const lectureMediaUrl = path => path?.startsWith('/api/') ? apiUrl(path) : '';

@@ -20,3 +20,10 @@ venv/
 
 #6 TTS 음성 캐시
 backend/storage/audio_cache/
+
+# 학습 중 생성한 설명 이미지와 내부 검수 기록
+backend/storage/lecture_images/
+
+# 이미지 연동 검증 산출물
+backend/test/.presentation-live.json
+backend/test/.presentation-ui/

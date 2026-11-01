@@ -136,3 +136,4 @@ streamlit==1.57.0
 langchain-chroma==1.1.0
 fastapi==0.142.2
 opentelemetry-exporter-otlp-common==0.66b0
+Pillow==12.1.1

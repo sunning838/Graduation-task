@@ -648,3 +648,111 @@
   border-radius: 10px;
   background: var(--border);
 }
+
+/* 슬라이드와 참고서 본문을 함께 보는 강의실 */
+.concept-learning .learning { max-width: 1480px; }
+.concept-learning .presentation-shell { min-width: 0; }
+.concept-learning .presentation-pane { border: 0; background: transparent; padding: 0; min-width: 0; }
+.concept-learning .presentation-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 12px; }
+.concept-learning .presentation-heading .pane-title { margin: 0; }
+.concept-learning .presentation-pane .tabs { margin-top: 12px; margin-bottom: 0; }
+.concept-learning .presentation-body { min-width: 0; }
+.concept-learning .presentation-status { min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--muted); }
+.concept-learning .is-preparing::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: #77b8c2; }
+.concept-learning .lecture-workspace { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr); gap: 20px; align-items: stretch; }
+.concept-learning .lecture-stage { display: flex; flex-direction: column; min-width: 0; height: clamp(400px, calc(100dvh - 360px), 650px); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.concept-learning .slide-kicker { display: flex; justify-content: space-between; gap: 12px; padding: 19px 26px 12px; color: var(--muted); font-size: 12px; }
+.concept-learning .slide-content { flex: 1; min-height: 0; overflow: auto; padding: 4px 26px 18px; }
+.concept-learning .slide-content h3 { margin: 0 0 16px; font-size: clamp(21px, 1.9vw, 29px); line-height: 1.45; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.concept-learning .slide-image-button { display: block; position: relative; width: 100%; max-width: 650px; margin: 0 auto; padding: 0; background: #f5f7fa; border: 0; border-radius: 9px; overflow: hidden; cursor: zoom-in; }
+.concept-learning .slide-image-button img { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: clamp(140px, calc(100dvh - 640px), 300px); object-fit: contain; }
+.concept-learning .slide-image-button span { position: absolute; right: 8px; bottom: 8px; border-radius: 5px; padding: 4px 7px; background: rgba(20, 30, 40, .72); color: #fff; font-size: 10px; }
+.concept-learning .slide-caption { color: var(--muted); margin: 9px 0 0; font-size: 12px; line-height: 1.6; }
+.concept-learning .slide-points { padding-left: 20px; margin: 13px 0 0; font-size: clamp(13px, 1.1vw, 16px); line-height: 1.8; }
+.concept-learning .slide-points li { padding-left: 4px; margin: 7px 0; overflow-wrap: anywhere; }
+.concept-learning .slide-points li::marker { color: #77b8c2; }
+.concept-learning .slide-points.without-image { margin-top: 28px; font-size: clamp(17px, 1.4vw, 21px); line-height: 1.95; }
+.concept-learning .slide-points.without-image li { margin: 18px 0; }
+.concept-learning .slide-image-note { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 24px; }
+.concept-learning .presentation-spinner { display: inline-block; flex: 0 0 auto; width: 12px; height: 12px; border: 2px solid var(--line-strong); border-top-color: #77b8c2; border-radius: 50%; animation: lecture-spin .9s linear infinite; }
+@keyframes lecture-spin { to { transform: rotate(360deg); } }
+.concept-learning .slide-navigation { display: flex; justify-content: space-between; align-items: center; gap: 14px; border-top: 1px solid var(--line); padding: 12px 18px; }
+.concept-learning .slide-navigation .btn { height: 32px; font-size: 12px; padding: 0 12px; }
+.concept-learning .slide-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; }
+.concept-learning .slide-dots button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: var(--line-strong); cursor: pointer; }
+.concept-learning .slide-dots button.is-current { background: #77b8c2; outline: 3px solid rgba(119,184,194,.15); }
+.concept-learning .lecture-reference { display: flex; flex-direction: column; min-width: 0; height: clamp(400px, calc(100dvh - 360px), 650px); border: 1px solid var(--line); border-radius: 14px; background: var(--bg); overflow: hidden; }
+.concept-learning .reference-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex: 0 0 auto; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.concept-learning .reference-kicker { font-size: 10px; color: var(--muted); }
+.concept-learning .reference-heading h3 { margin: 3px 0 0; font-size: 17px; }
+.concept-learning .text-button { padding: 4px 0; color: var(--muted); border: 0; background: none; font-size: 11px; line-height: 1.5; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.concept-learning .text-button:hover { color: var(--ink); }
+.concept-learning .text-button:disabled { opacity: .4; cursor: default; }
+.concept-learning .reference-scroll { position: relative; overflow: auto; flex: 1; min-height: 0; padding: 10px 10px 28px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.concept-learning .reference-paragraph { padding: 5px 12px; border-left: 3px solid transparent; border-radius: 0 5px 5px 0; margin-bottom: 6px; }
+.concept-learning .reference-paragraph.is-speaking { border-left-color: #d8b36b; background: rgba(216,179,107,.09); }
+.concept-learning .reference-paragraph .markdown { font-size: 14px; line-height: 1.95; word-break: keep-all; overflow-wrap: anywhere; }
+.concept-learning .reference-paragraph .markdown h3 { font-size: 17px; margin: 12px 0 9px; }
+.concept-learning .reference-paragraph .markdown h4 { font-size: 15px; }
+.concept-learning .reference-paragraph .markdown p { margin: 7px 0; }
+.concept-learning .reference-paragraph .markdown ul,.concept-learning .reference-paragraph .markdown ol { padding-left: 20px; }
+.concept-learning .reference-paragraph .markdown pre { overflow-x: auto; white-space: pre; font-size: 12px; }
+.concept-learning .reference-paragraph .markdown table { display: block; overflow-x: auto; }
+.concept-learning .paragraph-play { opacity: 0; font-size: 10px; }
+.concept-learning .reference-paragraph:hover .paragraph-play,.concept-learning .paragraph-play:focus-visible { opacity: 1; }
+.concept-learning .reference-appendix { padding: 0 12px; }
+.concept-learning .lecture-controls { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 16px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; font-size: 12px; }
+.concept-learning .lecture-controls audio { display: none; }
+.concept-learning .lecture-controls .btn { height: 36px; font-size: 12px; padding: 0 13px; white-space: nowrap; }
+.concept-learning .lecture-play { min-width: 112px; }
+.concept-learning .lecture-seek { flex: 1; min-width: 130px; display: flex; gap: 10px; align-items: center; }
+.concept-learning .lecture-seek input { width: 100%; accent-color: #77b8c2; cursor: pointer; }
+.concept-learning .lecture-seek span { font-size: 10px; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--muted); }
+.concept-learning .lecture-speed { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.concept-learning .lecture-speed select { border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); padding: 4px; font-size: 12px; }
+.concept-learning .lecture-follow { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.concept-learning .lecture-follow input { accent-color: #77b8c2; }
+.concept-learning .lecture-feedback { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 9px 0; }
+.concept-learning .lecture-feedback.is-error { color: var(--danger); }
+.concept-learning .lecture-image-dialog { max-width: min(92vw, 1300px); max-height: 90vh; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+.concept-learning .lecture-image-dialog img { display: block; width: 100%; max-height: 78vh; object-fit: contain; margin-top: 12px; }
+.concept-learning .lecture-image-dialog::backdrop,.concept-learning .lecture-tutor-drawer::backdrop { background: rgba(0,0,0,.55); }
+.concept-learning .lecture-tutor-drawer { position: fixed; box-sizing: border-box; inset: 0 0 0 auto; margin: 0; width: min(520px, 94vw); max-width: none; height: 100dvh; max-height: none; padding: 20px; color: var(--ink); background: var(--bg); border: 0; border-left: 1px solid var(--line); overflow: auto; }
+.concept-learning .tutor-drawer-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; margin-bottom: 24px; }
+.concept-learning .lecture-tutor-drawer .pane { border: 0; padding: 0; background: transparent; }
+.concept-learning .lecture-tutor-drawer .tutor-box { height: calc(100dvh - 210px); min-height: 300px; }
+@media (max-width: 1100px) {
+  .concept-learning { padding-left: 20px; padding-right: 20px; }
+  .concept-learning .lecture-workspace { grid-template-columns: minmax(0, 1.15fr) minmax(280px, 1fr); gap: 12px; }
+  .concept-learning .slide-content { padding-left: 18px; padding-right: 18px; }
+  .concept-learning .slide-kicker { padding-left: 18px; padding-right: 18px; }
+  .concept-learning .lecture-follow { display: none; }
+}
+@media (max-width: 760px) {
+  .concept-learning .presentation-heading { display: block; }
+  .concept-learning .presentation-heading > span { display: block; margin-top: 7px; }
+  .concept-learning .lecture-workspace { grid-template-columns: minmax(0,1fr); }
+  .concept-learning .lecture-stage { height: 480px; }
+  .concept-learning .lecture-reference { height: 440px; }
+  .concept-learning .lecture-controls { gap: 10px; padding: 12px; }
+  .concept-learning .lecture-seek { flex-basis: 60%; }
+  .concept-learning .lecture-speed { margin-left: auto; }
+  .concept-learning .presentation-status { font-size: 11px; }
+  .concept-learning .paragraph-play { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .concept-learning .presentation-spinner { animation: none; } }
+
+.concept-learning:has(.is-presenting) { padding-top: 18px; padding-bottom: 24px; }
+.concept-learning .presentation-lesson-heading { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 17px; }
+.concept-learning .presentation-lesson-heading p { margin: 0 0 6px; font-size: 11px; }
+.concept-learning .presentation-lesson-heading h1 { margin: 0; font-size: clamp(19px, 1.65vw, 25px); line-height: 1.5; letter-spacing: -.03em; }
+.concept-learning .presentation-study-actions { display: flex; align-items: center; gap: 13px; flex: 0 0 auto; }
+.concept-learning .presentation-study-actions span { font-size: 11px; color: var(--muted); }
+.concept-learning .presentation-study-actions .btn { height: 32px; font-size: 11px; }
+.concept-learning .is-presenting .presentation-heading { margin-top: 0; }
+.concept-learning .is-presenting .lesson-nav { margin-top: 16px; padding-top: 14px; }
+@media (max-width: 760px) {
+  .concept-learning .presentation-lesson-heading { align-items: flex-start; }
+  .concept-learning .presentation-study-actions { flex-direction: column-reverse; align-items: flex-end; gap: 5px; }
+  .concept-learning .presentation-study-actions span { font-size: 9px; white-space: nowrap; }
+}
