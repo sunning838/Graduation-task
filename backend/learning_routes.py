@@ -43,10 +43,21 @@ def _states(learner):
             for key, (status, touched) in raw.items()}
 
 
+def _progress_snapshot(learner, cert):
+    config, lessons = _catalog()
+    if cert not in config:
+        _fail(422, 'INVALID_CERT', '지원하지 않는 자격증입니다.')
+    raw, revision = _progress().snapshot(learner, lessons, cert)
+    return {'states': {key: {'status': 'complete' if status == 'complete' else 'started',
+                            'updatedAt': int(touched) // 1_000_000}
+                       for key, (status, touched) in raw.items()}, 'reset_revision': revision}
+
+
 class ProgressRequest(BaseModel):
     learner: str = Field(min_length=1, max_length=100)
     lesson_id: str = Field(min_length=1, max_length=100)
     complete: bool = False
+    reset_revision: int | None = Field(default=None, strict=True, ge=0)
 
 
 class TutorMessage(BaseModel):
@@ -89,13 +100,16 @@ def get_catalog():
 
 
 @router.get('/progress')
-def get_progress(learner: str):
-    return _states(learner)
+def get_progress(learner: str, cert: str | None = None):
+    return _progress_snapshot(learner, cert) if cert is not None else _states(learner)
 
 
 @router.post('/progress')
 def save_progress(request: ProgressRequest):
-    _progress().save(request.learner, _lesson(request.lesson_id), complete=request.complete)
+    lesson = _lesson(request.lesson_id)
+    _progress().save(request.learner, lesson, complete=request.complete, reset_revision=request.reset_revision)
+    if request.reset_revision is not None:
+        return _progress_snapshot(request.learner, lesson['cert'])
     return _states(request.learner)
 
 

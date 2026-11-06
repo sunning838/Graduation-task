@@ -89,6 +89,14 @@ class SummaryRequest(BaseModel):
     cert: Identifier = 'EIP'
 
 
+class LearningResetRequest(BaseModel):
+    cert: Identifier = 'EIP'
+    learner: Identifier = '내 학습'
+    include_progress: bool = Field(default=False, strict=True)
+    confirm: bool = Field(strict=True)
+    request_id: Identifier
+
+
 class ExamPart(BaseModel):
     topic: Identifier
     count: int = Field(strict=True, ge=1, le=100)
@@ -191,6 +199,21 @@ def weakness(cert: str = 'EIP', store: APIStore = Depends(get_store)):
     return {'cert': cert, **learning_stats(store, cert)['weakness']}
 
 
+@app.post('/api/learning/reset')
+def reset_learning_data(request: LearningResetRequest, store: APIStore = Depends(get_store)):
+    certification(request.cert)
+    if not request.confirm:
+        fail(422, 'RESET_CONFIRMATION_REQUIRED', '삭제할 학습 기록을 확인해 주세요.')
+    from backend.learning_reset import reset_learning
+    progress, lessons = None, ()
+    if request.include_progress:
+        from backend.learning_routes import _progress, _catalog
+        progress = _progress()
+        _, lessons = _catalog()
+    return reset_learning(store, request.cert, request.learner, request.include_progress,
+                          request.request_id, progress, lessons)
+
+
 @app.get('/api/summary-notes')
 def get_summary_notes(cert: str = 'EIP', store: APIStore = Depends(get_store)):
     certification(cert)
@@ -206,7 +229,8 @@ def bank_availability(cert: str = 'EIP', store: APIStore = Depends(get_store)):
 @app.post('/api/mock-exams')
 def new_exam(request: ExamRequest, store: APIStore = Depends(get_store)):
     certification(request.cert)
-    return mock_exams.create_exam(store, request.cert, [p.model_dump() for p in request.distribution], request.request_id)
+    generation = store.learning_generation(request.cert)
+    return mock_exams.create_exam(store, request.cert, [p.model_dump() for p in request.distribution], request.request_id, generation=generation)
 
 
 @app.post('/api/mock-preparations')
@@ -267,6 +291,7 @@ def validate_quiz(quiz, config):
 @app.post('/api/quiz')
 def create_quiz(request: QuizRequest, store: APIStore = Depends(get_store)):
     config = certification(request.cert)
+    generation = store.learning_generation(request.cert)
     focus = None
     lesson = None
     if request.mode == 'lesson':
@@ -308,7 +333,7 @@ def create_quiz(request: QuizRequest, store: APIStore = Depends(get_store)):
     except Exception:
         LOG.exception('Quiz generation failed')
         fail(502, 'QUIZ_GENERATION_FAILED', '문제를 생성하지 못했습니다. 다시 시도해 주세요.', True)
-    attempt_id = store.create_attempt(request.cert, quiz)
+    attempt_id = store.create_attempt(request.cert, quiz, generation=generation)
     return dict(attempt_id=attempt_id, quiz_id=attempt_id, cert=request.cert, mode=request.mode,
                 question=quiz['question'], topic=quiz['topic'],
                 topic_label=config['topics'][quiz['topic']], options=quiz['options'],

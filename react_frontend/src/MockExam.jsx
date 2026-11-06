@@ -68,9 +68,14 @@ export default function MockExam({ cert, label, onSubmitted, onWeakness }) {
       try {
         if (!cert) throw new Error('자격증 목록을 먼저 불러와 주세요.');
         const data = await apiRequest(`/api/question-bank/availability?cert=${encodeURIComponent(cert)}`, { signal: controller.signal });
-        const saved = readSaved(key);
-        const preparing = saved?.pending ? await apiRequest('/api/mock-preparations', { body: { cert, ...saved.pending }, signal: controller.signal }) : null;
-        const restored = saved?.id ? await apiRequest(`/api/mock-exams/${saved.id}`, { signal: controller.signal }) : null;
+        let saved = readSaved(key), preparing = null, restored = null;
+        try {
+          preparing = saved?.pending ? await apiRequest('/api/mock-preparations', { body: { cert, ...saved.pending }, signal: controller.signal }) : null;
+          restored = saved?.id ? await apiRequest(`/api/mock-exams/${saved.id}`, { signal: controller.signal }) : null;
+        } catch (e) {
+          if (!['LEARNING_RESET', 'EXAM_NOT_FOUND', 'PREPARATION_NOT_FOUND'].includes(e.code)) throw e;
+          localStorage.removeItem(key); saved = null;
+        }
         if (restored && restored.cert !== cert) throw new Error('저장된 시험의 자격증이 일치하지 않습니다.');
         if (!controller.signal.aborted) {
           setBank(data); setSelected(saved?.pending?.distribution?.map(p => p.topic) || data.subjects.map(s => s.topic));
@@ -100,7 +105,7 @@ export default function MockExam({ cert, label, onSubmitted, onWeakness }) {
           setExam(result); setIndex(0); setPreparation(null); setError('');
           return;
         }
-        if (state.status === 'failed') {
+        if (state.status === 'failed' || state.status === 'cancelled') {
           localStorage.removeItem(key);
           setPreparation(null); setError(state.message);
           return;

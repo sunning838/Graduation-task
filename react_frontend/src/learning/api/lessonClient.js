@@ -6,10 +6,11 @@ export async function getCatalog(signal) {
   const data = await apiRequest('/api/learning/catalog', { signal });
   return { config: { EIP: data.config.EIP }, lessons: data.lessons.filter(l => l.cert === 'EIP') };
 }
-export const getProgress = (learner, signal) => apiRequest(`/api/learning/progress?learner=${encodeURIComponent(learner)}`, { signal });
-export const saveProgress = (learner, lessonId, complete, signal) => apiRequest('/api/learning/progress', {
-  signal, body: { learner, lesson_id: lessonId, complete },
-});
+const progressResult = data => ({ states: data.states ?? data, resetRevision: data.reset_revision ?? 0 });
+export const getProgress = (learner, signal) => apiRequest(`/api/learning/progress?learner=${encodeURIComponent(learner)}&cert=EIP`, { signal }).then(progressResult);
+export const saveProgress = (learner, lessonId, complete, resetRevision, signal) => apiRequest('/api/learning/progress', {
+  signal, body: { learner, lesson_id: lessonId, complete, reset_revision: resetRevision },
+}).then(progressResult);
 export async function teach(lessonId, variant, signal, question = null) {
   const body = { lesson_id: lessonId, variant: variants[variant] };
   if (question) Object.assign(body, {

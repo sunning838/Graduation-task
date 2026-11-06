@@ -18,6 +18,10 @@ def view(store, request_id):
             "SELECT topic,COUNT(*) AS n FROM question_bank WHERE cert=? AND status='ready' GROUP BY topic",(row['cert'],))}
     if not row:
         raise StateError(404,'PREPARATION_NOT_FOUND','시험 준비 요청을 찾을 수 없습니다.')
+    if row['status'] == 'cancelled':
+        return dict(request_id=request_id, status='cancelled', exam_id=None,
+                    message='학습 기록이 초기화되어 시험 준비가 취소되었습니다.',
+                    progress=dict(total=0, ready=0, remaining=0, percent=0))
     messages = {'queued':'시험 준비를 기다리고 있습니다.', 'running':'시험 문제를 준비하고 있습니다. 잠시 기다려 주세요.',
                 'completed':'시험 준비가 완료되었습니다.', 'failed':'시험 준비를 완료하지 못했습니다. 다시 시도해 주세요.'}
     parts = json.loads(row['distribution'])
@@ -28,22 +32,26 @@ def view(store, request_id):
 
 
 def start(store, cert, distribution, request_id):
+    generation = store.learning_generation(cert)
     encoded = json.dumps(sorted(distribution,key=lambda p:p['topic']),sort_keys=True)
     with store.connect() as db:
         row = db.execute('SELECT * FROM mock_preparations WHERE request_id=?',(request_id,)).fetchone()
     if row:
+        if row['status'] == 'cancelled':
+            raise StateError(409, 'LEARNING_RESET', '학습 기록이 초기화되었습니다. 새 모의고사를 시작해 주세요.')
         if row['cert'] != cert or row['distribution'] != encoded:
             raise StateError(409,'REQUEST_CONFLICT','다른 시험 설정에 사용한 요청 ID입니다.')
         return view(store,request_id)
     # This validates the distribution and assembles immediately if already stocked.
     exam = None
     try:
-        exam = bank.create_exam(store,cert,distribution,request_id)
+        exam = bank.create_exam(store,cert,distribution,request_id,generation=generation)
     except StateError as exc:
         if exc.code != 'INSUFFICIENT_QUESTIONS':
             raise
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')
+        store.check_generation(db, cert, generation)
         db.execute('INSERT OR IGNORE INTO mock_preparations(request_id,cert,distribution,status,exam_id,max_attempts) VALUES(?,?,?,?,?,?)',
                    (request_id,cert,encoded,'completed' if exam else 'queued',exam['id'] if exam else None,min(300,sum(p['count'] for p in distribution)*3+10)))
         row = db.execute('SELECT * FROM mock_preparations WHERE request_id=?',(request_id,)).fetchone()
@@ -65,11 +73,13 @@ def run(store, request_id, engine_factory):
             locked = True
             _run(store,request_id,engine_factory)
     except Exception as exc:
+        if isinstance(exc, StateError) and exc.code == 'LEARNING_RESET':
+            return
         if not locked and isinstance(exc, ValueError):
             return  # Another worker owns the lock; a later poll retries.
         LOG.exception('Mock preparation worker failed')
         with store.connect() as db:
-            db.execute("UPDATE mock_preparations SET status='failed',last_error='worker_failure' WHERE request_id=? AND status!='completed'",(request_id,))
+            db.execute("UPDATE mock_preparations SET status='failed',last_error='worker_failure' WHERE request_id=? AND status NOT IN ('completed','cancelled')",(request_id,))
 
 
 def _run(store, request_id, engine_factory):
@@ -77,22 +87,24 @@ def _run(store, request_id, engine_factory):
     failures = 0
     while True:
         with store.connect() as db:
-            row = db.execute('SELECT * FROM mock_preparations WHERE request_id=?',(request_id,)).fetchone()
-        if not row or row['status'] in ('completed','failed'):
+            row = db.execute('''SELECT p.*, COALESCE(v.generation,0) AS reset_generation
+                FROM mock_preparations p LEFT JOIN learning_reset_versions v ON v.cert=p.cert
+                WHERE p.request_id=?''',(request_id,)).fetchone()
+        if not row or row['status'] in ('completed','failed','cancelled'):
             return
         cert, parts = row['cert'], json.loads(row['distribution'])
         try:
-            exam = bank.create_exam(store,cert,parts,request_id)
+            exam = bank.create_exam(store,cert,parts,request_id,generation=row['reset_generation'])
         except StateError as exc:
             if exc.code != 'INSUFFICIENT_QUESTIONS':
                 raise
         else:
             with store.connect() as db:
-                db.execute("UPDATE mock_preparations SET status='completed',exam_id=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=?",(exam['id'],request_id))
+                db.execute("UPDATE mock_preparations SET status='completed',exam_id=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND status!='cancelled'",(exam['id'],request_id))
             return
         if row['attempts'] >= row['max_attempts']:
             with store.connect() as db:
-                db.execute("UPDATE mock_preparations SET status='failed',last_error='attempt_limit' WHERE request_id=?",(request_id,))
+                db.execute("UPDATE mock_preparations SET status='failed',last_error='attempt_limit' WHERE request_id=? AND status!='cancelled'",(request_id,))
             return
         counts = {s['topic']:s['ready'] for s in bank.availability(store,cert)['subjects']}
         deficits = [p for p in parts if counts[p['topic']] < p['count']]
@@ -103,7 +115,9 @@ def _run(store, request_id, engine_factory):
             candidate = next((c for c in candidates if c['id'] not in tried),None)
             if candidate:
                 tried.append(candidate['id'])
-            db.execute("UPDATE mock_preparations SET status='running',attempts=attempts+1,tried=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=?",(json.dumps(tried),request_id))
+            updated = db.execute("UPDATE mock_preparations SET status='running',attempts=attempts+1,tried=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND status!='cancelled'",(json.dumps(tried),request_id))
+            if not updated.rowcount:
+                return
         try:
             if engine is None:
                 engine = engine_factory()
@@ -128,9 +142,9 @@ def _run(store, request_id, engine_factory):
             failures += 1
             LOG.warning('Preparation %s candidate failed: %s',request_id,exc)
             with store.connect() as db:
-                db.execute('UPDATE mock_preparations SET last_error=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=?',(str(exc),request_id))
+                db.execute("UPDATE mock_preparations SET last_error=?,updated_at=CURRENT_TIMESTAMP WHERE request_id=? AND status!='cancelled'",(str(exc),request_id))
             # Initialization/service failures should not repeatedly retry paid calls.
             if engine is None or failures >= 3:
                 with store.connect() as db:
-                    db.execute("UPDATE mock_preparations SET status='failed' WHERE request_id=?",(request_id,))
+                    db.execute("UPDATE mock_preparations SET status='failed' WHERE request_id=? AND status!='cancelled'",(request_id,))
                 return

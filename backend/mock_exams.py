@@ -120,7 +120,7 @@ def exam_view(store, exam_id):
                 submitted_at=exam['submitted_at'], items=public, result=json.loads(exam['result']) if submitted else None)
 
 
-def create_exam(store, cert, distribution, request_id):
+def create_exam(store, cert, distribution, request_id, generation=None):
     if not distribution or len({d['topic'] for d in distribution}) != len(distribution):
         raise StateError(422, 'INVALID_DISTRIBUTION', '중복 없이 출제 과목을 선택해 주세요.')
     if any(d['topic'] not in CERT_CONFIG[cert]['topics'] or type(d['count']) is not int or d['count'] < 1 for d in distribution):
@@ -131,6 +131,10 @@ def create_exam(store, cert, distribution, request_id):
     encoded = json.dumps(distribution, sort_keys=True)
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')
+        store.check_generation(db, cert, generation)
+        cancelled = db.execute("SELECT 1 FROM mock_preparations WHERE request_id=? AND status='cancelled'", (request_id,)).fetchone()
+        if cancelled:
+            raise StateError(409, 'LEARNING_RESET', '학습 기록이 초기화되었습니다. 새 모의고사를 시작해 주세요.')
         previous = db.execute('SELECT * FROM mock_exams WHERE request_id=?', (request_id,)).fetchone()
         if previous:
             if previous['cert'] != cert or previous['distribution'] != encoded:

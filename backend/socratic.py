@@ -69,6 +69,8 @@ def evaluate(store, engine_factory, request):
     evaluation.update(session_id=request.session_id, revision=revision + 1)
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')
+        if not db.execute('SELECT 1 FROM api_attempts WHERE id=?', (request.attempt_id,)).fetchone():
+            raise StateError(409, 'LEARNING_RESET', '학습 기록이 초기화되었습니다. 새 문제로 시작해 주세요.')
         db.execute('INSERT OR IGNORE INTO socratic_sessions(id,attempt_id) VALUES(?,?)',
                    (request.session_id, request.attempt_id))
         existing = db.execute('SELECT * FROM socratic_turns WHERE session_id=? AND request_id=?',

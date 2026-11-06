@@ -11,6 +11,7 @@ import LearningDashboard from "./LearningDashboard";
 import WeaknessTraining from "./WeaknessTraining";
 import SummaryNotes from "./SummaryNotes";
 import MockExam from "./MockExam";
+import LearningResetDialog from "./LearningResetDialog";
 const WEAKNESS_QUESTIONS = {
   software_design: [
     "소프트웨어 생명 주기 모형의 차이를 설명해줘",
@@ -60,6 +61,8 @@ function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
   const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetNotice, setResetNotice] = useState("");
   const chatRequest = useRef(null);
   const quizRequest = useRef(null);
   const submitRequest = useRef(null);
@@ -196,6 +199,22 @@ function App() {
     setSocraticCompleted(false);
   };
 
+  const completeLearningReset = result => {
+    quizRequest.current?.abort(); quizRequest.current = null;
+    submitRequest.current?.abort(); submitRequest.current = null;
+    setQuiz(null); setQuizLoading(false); setQuizSubmitting(false);
+    setQuizResult(null); setSelectedAnswer(null); setQuizError("");
+    setLessonPractice(null);
+    resetSocraticPractice();
+    if (result.include_progress && result.cert === "EIP") setLearningReturnId(null);
+    try { localStorage.removeItem(`mock-exam:${result.cert}`); } catch { /* Restoration also handles discarded exams. */ }
+    refreshStats();
+    setResetNotice(result.include_progress
+      ? "문제풀이 기록과 개념학습 진도를 초기화했습니다."
+      : "문제풀이 기록을 초기화했습니다. 개념학습 진도는 유지했습니다.");
+    setResetOpen(false);
+  };
+
   const submitSocraticAnswer = async () => {
     const answer = socraticAnswer.trim();
     if (!answer || socraticCompleted || socraticRequest.current || !quiz?.attempt_id) return;
@@ -254,6 +273,7 @@ function App() {
   };
   const changeCertification = label => {
     if (label === selectedCert) return;
+    setResetNotice("");
     // 자격증 변경 시 대화 기록만 초기화하며 프로필/학습실 위치는 유지합니다.
     resetChat();
     quizRequest.current?.abort();
@@ -813,7 +833,8 @@ function App() {
               <button type="button" className="profile-back-button" onClick={returnFromProfile}>
                 ← 이전 화면
               </button>
-              <button type="button" className="learning-reset-button" onClick={() => alert("학습 데이터 초기화 기능은 추후 연결 예정입니다.")}>
+              <button type="button" className="learning-reset-button" disabled={!selectedCertId}
+                onClick={() => { setResetNotice(""); setResetOpen(true); }}>
                 학습 데이터 초기화
               </button>
             </div>
@@ -821,6 +842,7 @@ function App() {
           {/* =============================================
                   취약점 분석
                ============================================= */}
+          {resetNotice && <p role="status" className="learning-reset-notice">{resetNotice}</p>}
           <LearningDashboard stats={stats}
             loading={statsLoading || (!selectedCertId && !connectionError)} error={statsError || connectionError}
             onRetry={refreshLearningData} darkMode={darkMode} />
@@ -902,6 +924,8 @@ function App() {
         </div>
       </section>}
     </main>
+    {resetOpen && <LearningResetDialog cert={selectedCertId} label={selectedCert}
+      onClose={() => setResetOpen(false)} onComplete={completeLearningReset} />}
   </div>;
 }
 export default App;

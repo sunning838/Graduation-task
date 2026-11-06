@@ -52,6 +52,9 @@ class Progress:
         self.path = path or ROOT / 'storage/learning.db'
         with self.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS progress (learner TEXT, lesson TEXT, version TEXT, status TEXT, touched INTEGER, PRIMARY KEY(learner,lesson))')
+            db.execute('''CREATE TABLE IF NOT EXISTS progress_reset_versions (
+                learner TEXT NOT NULL, cert TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(learner,cert))''')
 
     @contextmanager
     def connect(self):
@@ -62,16 +65,30 @@ class Progress:
         finally:
             db.close()
 
-    def save(self, learner, lesson, complete=False):
+    def save(self, learner, lesson, complete=False, reset_revision=None):
         with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if reset_revision is not None:
+                from backend.api_store import StateError
+                row = db.execute('SELECT revision FROM progress_reset_versions WHERE learner=? AND cert=?',
+                                 (learner, lesson['cert'])).fetchone()
+                if (row[0] if row else 0) != reset_revision:
+                    raise StateError(409, 'PROGRESS_RESET', '개념학습 진도가 초기화되었습니다. 단원을 다시 선택해 주세요.')
             db.execute('''INSERT INTO progress VALUES (?,?,?,?,?) ON CONFLICT(learner,lesson)
                 DO UPDATE SET version=excluded.version, status=CASE WHEN progress.version=excluded.version AND progress.status='complete' THEN 'complete' ELSE excluded.status END,touched=excluded.touched''',
                 (learner, lesson['id'], lesson['version'], 'complete' if complete else 'studying', __import__('time').time_ns()))
 
     def states(self, learner, lessons):
+        return self.snapshot(learner, lessons)[0]
+
+    def snapshot(self, learner, lessons, cert=None):
         with self.connect() as db:
+            db.execute('BEGIN')
             rows = {r[0]: r[1:] for r in db.execute('SELECT lesson,version,status,touched FROM progress WHERE learner=?', (learner,))}
-        return {l['id']: (rows[l['id']][1], rows[l['id']][2]) for l in lessons if l['id'] in rows and rows[l['id']][0] == l['version']}
+            revision = db.execute('SELECT revision FROM progress_reset_versions WHERE learner=? AND cert=?', (learner, cert)).fetchone()
+        states = {l['id']: (rows[l['id']][1], rows[l['id']][2]) for l in lessons
+                  if (cert is None or l['cert'] == cert) and l['id'] in rows and rows[l['id']][0] == l['version']}
+        return states, revision[0] if revision else 0
 
 
 def retrieve(lesson, lessons, query):

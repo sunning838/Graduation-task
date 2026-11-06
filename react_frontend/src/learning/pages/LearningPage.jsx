@@ -31,6 +31,7 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
   const alive = useRef(false);
   const pendingSave = useRef(null);
   const progressRevision = useRef(0);
+  const serverProgressRevision = useRef(null);
   const lessons = useMemo(() => catalog?.lessons || [], [catalog]);
   const active = lessons.find(l => l.id === activeId);
   const last = lessons.reduce((best, l) => states[l.id] && (!best || states[l.id].updatedAt > states[best.id].updatedAt) ? l : best, null);
@@ -55,7 +56,10 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
       setCatalog(data); setLoadError('');
     }).catch(e => { if (!controller.signal.aborted) setLoadError(e.message); });
     api.getProgress(LEARNER, controller.signal).then(data => {
-      if (!controller.signal.aborted && revision === progressRevision.current) { setStates(data); setProgressError(''); }
+      if (!controller.signal.aborted && revision === progressRevision.current) {
+        serverProgressRevision.current = data.resetRevision;
+        setStates(data.states); setProgressError('');
+      }
     }).catch(e => { if (!controller.signal.aborted && revision === progressRevision.current) setProgressError(e.message); });
     return () => controller.abort();
   }, [reload]);
@@ -77,20 +81,33 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
     progressLock.current = true; setSaving(true); setProgressError('');
     pendingSave.current = { lesson, complete };
     try {
-      const data = await api.saveProgress(LEARNER, lesson.id, complete);
+      if (serverProgressRevision.current === null) {
+        const snapshot = await api.getProgress(LEARNER);
+        if (!alive.current) return;
+        serverProgressRevision.current = snapshot.resetRevision;
+      }
+      const data = await api.saveProgress(LEARNER, lesson.id, complete, serverProgressRevision.current);
       if (!alive.current) return;
-      setStates(data); pendingSave.current = null;
+      setStates(data.states); pendingSave.current = null;
       if (complete) {
         const next = lessons[lessons.indexOf(lesson) + 1] || null;
         if (next) {
           pendingSave.current = { lesson: next, complete: false };
-          const nextStates = await api.saveProgress(LEARNER, next.id, false);
+          const nextStates = await api.saveProgress(LEARNER, next.id, false, serverProgressRevision.current);
           if (!alive.current) return;
-          setStates(nextStates); pendingSave.current = null;
+          setStates(nextStates.states); pendingSave.current = null;
         }
         changeLesson(next);
       } else changeLesson(lesson);
-    } catch (e) { if (alive.current) setProgressError(e.message); }
+    } catch (e) {
+      if (alive.current) {
+        setProgressError(e.message);
+        if (e.code === 'PROGRESS_RESET') {
+          pendingSave.current = null; serverProgressRevision.current = null;
+          changeLesson(null); setReload(value => value + 1);
+        }
+      }
+    }
     finally { progressLock.current = false; if (alive.current) setSaving(false); }
   };
 

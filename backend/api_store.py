@@ -52,6 +52,14 @@ class APIStore:
                     cert TEXT PRIMARY KEY, token TEXT, expires REAL NOT NULL DEFAULT 0,
                     issues TEXT NOT NULL DEFAULT '[]'
                 );
+                CREATE TABLE IF NOT EXISTS learning_reset_versions (
+                    cert TEXT PRIMARY KEY, generation INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE IF NOT EXISTS learning_reset_requests (
+                    request_id TEXT PRIMARY KEY, cert TEXT NOT NULL, learner TEXT NOT NULL,
+                    include_progress INTEGER NOT NULL, result TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                );
             """)
 
     @contextmanager
@@ -90,9 +98,24 @@ class APIStore:
             db.executemany('INSERT INTO api_messages(conversation_id, role, content) VALUES (?, ?, ?)',
                            [(conversation_id, 'user', message), (conversation_id, 'assistant', answer)])
 
-    def create_attempt(self, cert, quiz):
+    def learning_generation(self, cert):
+        with self.connect() as db:
+            row = db.execute('SELECT generation FROM learning_reset_versions WHERE cert=?', (cert,)).fetchone()
+        return row['generation'] if row else 0
+
+    @staticmethod
+    def check_generation(db, cert, expected):
+        if expected is None:
+            return
+        row = db.execute('SELECT generation FROM learning_reset_versions WHERE cert=?', (cert,)).fetchone()
+        if (row['generation'] if row else 0) != expected:
+            raise StateError(409, 'LEARNING_RESET', '학습 기록이 초기화되었습니다. 새로 시작해 주세요.')
+
+    def create_attempt(self, cert, quiz, generation=None):
         attempt_id = str(uuid4())
         with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            self.check_generation(db, cert, generation)
             db.execute('INSERT INTO api_attempts(id, cert, quiz) VALUES (?, ?, ?)',
                        (attempt_id, cert, json.dumps(quiz, ensure_ascii=False)))
         return attempt_id

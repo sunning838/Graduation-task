@@ -27,3 +27,4 @@ backend/storage/lecture_images/
 # 이미지 연동 검증 산출물
 backend/test/.presentation-live.json
 backend/test/.presentation-ui/
+backend/test/.learning-reset-ui/

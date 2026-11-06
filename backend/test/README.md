@@ -27,11 +27,19 @@
 | test_mock_exams.py | 문제은행 검수·모의고사 구성·답안·채점 |
 | test_mock_preparation.py | 버튼으로 시작한 자동 보충·작업 복원·진행률 |
 | test_learning_routes.py | 개념학습 목록·진도·강의·도식 응답 및 단원 문제 생성/채점 |
+| test_learning_reset.py | 자격증·학습자별 초기화 범위, 두 DB 롤백, 재시도, 늦게 완료된 작업 차단 |
+| check_learning_reset_ui.mjs | 초기화 확인창·취소·선택 진도·실패 재시도·화면 갱신 검사 |
 | check_concept_ui.mjs | 개념학습 SVG·Markdown·초기 화면 렌더링 점검 |
 | benchmark_mock_exams.py | 임시 문제은행에서 시험 구성 시간 측정 |
 | tensor_search_smoke.py | 실제 Chroma DB 검색 수동 점검 |
 
 ## 성능 측정 (별도 실행)
+
+학습 초기화 화면은 React의 `npm run build` 후 프로젝트 루트에서
+`node backend/test/check_learning_reset_ui.mjs`로 검사합니다. Playwright와 Chrome이 필요하며,
+별도 패키지 디렉터리를 쓰면 `PRESENTATION_TEST_NODE_MODULES`를 지정합니다.
+빌드된 화면을 임시 로컬 포트로 제공하고 모든 API를 모의 응답으로 대체하므로
+실제 학습 기록과 Gemini API를 사용하지 않습니다. 화면 캡처는 `.learning-reset-ui/`에 저장합니다.
 
 ```powershell
 .\venv\Scripts\python.exe -m backend.test.benchmark_mock_exams
