@@ -264,13 +264,29 @@ class PresentationManager:
                 self._save(job)
             return self._public(job)
 
-    def start(self, lesson, lessons, variant, text):
+    def _cache_identity(self, lesson, lessons, variant, text):
         context_versions = {l['id']: l['version'] for l in lessons
                             if l['cert'] == lesson['cert'] and l['subject'] == lesson['subject']}
         identity = dict(pipeline=PIPELINE_VERSION, lesson_id=lesson['id'], version=lesson['version'],
                         variant=variant, text=text, image_model=self.provider.image_model,
                         review_model=self.provider.text_model, source_versions=context_versions)
         package_id = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        return package_id, context_versions
+
+    def lookup(self, lesson, lessons, variant, text):
+        """Restore a matching package, or describe the slides before generation starts."""
+        package_id, _ = self._cache_identity(lesson, lessons, variant, text)
+        try:
+            return self.get(package_id)
+        except PresentationError as error:
+            if error.code != 'PRESENTATION_NOT_FOUND':
+                raise
+        slides, segments = build_slides(text, lesson['title'])
+        return self._public(dict(id=package_id, status='idle', slides=slides, segments=segments,
+                                 image_total=len(slides)))
+
+    def start(self, lesson, lessons, variant, text):
+        package_id, context_versions = self._cache_identity(lesson, lessons, variant, text)
         with self.lock:
             try:
                 job = self._load(package_id)
@@ -281,7 +297,6 @@ class PresentationManager:
                 job = dict(id=package_id, status='queued', slides=slides, segments=segments,
                            image_total=len(slides), scenes={}, message='', created=time.time(), attempt=0,
                            _lesson=lesson, _text=text, _context_versions=context_versions)
-                self.jobs[package_id] = job
             future = self.futures.get(package_id)
             if future and not future.done():
                 return self._public(job)
@@ -289,6 +304,7 @@ class PresentationManager:
                 return self._public(job)
             if sum(not f.done() for f in self.futures.values()) >= 8:
                 raise PresentationError('다른 강의의 그림을 준비하고 있습니다. 잠시 후 다시 시도해 주세요.', 429, 'IMAGE_QUEUE_FULL')
+            self.jobs[package_id] = job
             job.update(status='queued', message='', attempt=job['attempt'] + 1)
             for slide in job['slides']:
                 if slide['image_status'] == 'failed':

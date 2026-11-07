@@ -30,13 +30,25 @@ def respond(action):
         raise HTTPException(error.status, detail=dict(code=error.code, message=str(error), retryable=error.status != 404)) from error
 
 
-@router.post('')
-def create_presentation(request: PresentationRequest):
+def _presentation_inputs(request):
     lesson = _lesson(request.lesson_id)
     if lesson['cert'] != 'EIP':
         raise HTTPException(422, detail=dict(code='UNSUPPORTED_LESSON', message='정보처리기사 강의를 선택해 주세요.'))
     _, lessons = _catalog()
-    return respond(lambda: manager().start(lesson, lessons, request.variant, request.text))
+    return lesson, lessons, request.variant, request.text
+
+
+@router.post('/lookup')
+def lookup_presentation(request: PresentationRequest):
+    # The request body carries the full lecture text for an exact cache match.
+    inputs = _presentation_inputs(request)
+    return respond(lambda: manager().lookup(*inputs))
+
+
+@router.post('')
+def create_presentation(request: PresentationRequest):
+    inputs = _presentation_inputs(request)
+    return respond(lambda: manager().start(*inputs))
 
 
 @router.get('/{package_id}')

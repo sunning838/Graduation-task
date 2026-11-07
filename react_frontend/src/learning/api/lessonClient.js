@@ -23,6 +23,9 @@ export async function teach(lessonId, variant, signal, question = null) {
   return { ...data, lessonId };
 }
 
+export const lookupPresentation = (lessonId, variant, text, signal) => apiRequest('/api/learning/presentations/lookup', {
+  signal, body: { lesson_id: lessonId, variant: variants[variant], text },
+});
 export const startPresentation = (lessonId, variant, text, signal) => apiRequest('/api/learning/presentations', {
   signal, body: { lesson_id: lessonId, variant: variants[variant], text },
 });

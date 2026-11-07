@@ -5,13 +5,14 @@ import * as api from '../api/lessonClient.js';
 import { Visual, Research } from './ChatMessage.jsx';
 import { localLecture, lectureFromSegments, slideForSegment, timelineSegment, timeLabel } from './lectureSlides.js';
 
-const COMPLETE = new Set(['ready', 'partial', 'failed']);
+const SETTLED = new Set(['idle', 'ready', 'partial', 'failed']);
 
 export default function PresentationLecture({ lessonId, variant, message, onOpenTutor }) {
   const local = useMemo(() => localLecture(message.text), [message.text]);
   const [presentation, setPresentation] = useState(null);
   const [imageError, setImageError] = useState('');
   const [imageReload, setImageReload] = useState(0);
+  const [imageSubmitting, setImageSubmitting] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioError, setAudioError] = useState('');
@@ -29,41 +30,43 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
   const playRequested = useRef(false);
   const requestedSegment = useRef(0);
   const audioController = useRef(null);
-  const imageRetryController = useRef(null);
+  const imageRequest = useRef(null);
   const expandedRef = useRef(null);
   const fallback = useMemo(() => audio?.timeline ? lectureFromSegments(audio.timeline) : local, [audio, local]);
   const slides = presentation?.slides?.length ? presentation.slides : fallback.slides;
   const segments = audio?.timeline || presentation?.segments || local.segments;
   const current = slides[Math.min(slideIndex, slides.length - 1)];
-  const imageBusy = !presentation || !COMPLETE.has(presentation.status);
+  const packageId = presentation?.package_id;
+  const activePackageId = presentation && !SETTLED.has(presentation.status) ? packageId : null;
+  const imageBusy = imageSubmitting || Boolean(activePackageId);
 
   useEffect(() => {
+    if (packageId && !activePackageId) return;
     const controller = new AbortController();
     let timer;
     let failures = 0;
-    const poll = async id => {
+    const checkImages = async () => {
       try {
-        const result = await api.getPresentation(id, controller.signal);
+        const result = activePackageId
+          ? await api.getPresentation(activePackageId, controller.signal)
+          : await api.lookupPresentation(lessonId, variant, message.text, controller.signal);
         if (controller.signal.aborted) return;
         setPresentation(result); setImageError(''); failures = 0;
-        if (!COMPLETE.has(result.status)) timer = setTimeout(() => poll(id), 1800);
+        if (activePackageId && !SETTLED.has(result.status)) timer = setTimeout(checkImages, 1800);
       } catch (error) {
         if (controller.signal.aborted) return;
-        if (++failures < 3) timer = setTimeout(() => poll(id), 2500);
+        if (activePackageId && ++failures < 3) timer = setTimeout(checkImages, 2500);
         else setImageError(error.message);
       }
     };
-    api.startPresentation(lessonId, variant, message.text, controller.signal).then(result => {
-      if (controller.signal.aborted) return;
-      setPresentation(result); setImageError('');
-      if (!COMPLETE.has(result.status)) timer = setTimeout(() => poll(result.package_id), 1500);
-    }).catch(error => { if (!controller.signal.aborted) setImageError(error.message); });
+    if (activePackageId) timer = setTimeout(checkImages, 1500);
+    else checkImages();
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [lessonId, variant, message.text, imageReload]);
+  }, [lessonId, variant, message.text, imageReload, packageId, activePackageId]);
 
   useEffect(() => () => {
     audioController.current?.abort();
-    imageRetryController.current?.abort();
+    imageRequest.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -145,42 +148,61 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
     audioRef.current.play().catch(() => setAudioError('재생 버튼을 눌러 주세요.'));
   };
 
-  const retryImages = async () => {
+  const requestImages = async () => {
+    if (imageRequest.current || !presentation || (presentation.status !== 'idle' && !presentation.retryable)) return;
+    const controller = new AbortController();
+    imageRequest.current = controller;
+    setImageSubmitting(true);
     setImageError('');
     setFailedImages({});
-    if (!presentation) { setImageReload(x => x + 1); return; }
-    imageRetryController.current?.abort();
-    const controller = new AbortController(); imageRetryController.current = controller;
     try {
-      const result = await api.retryPresentation(presentation.package_id, controller.signal);
-      if (!controller.signal.aborted) { setPresentation(result); setImageReload(x => x + 1); }
-    } catch (error) { if (!controller.signal.aborted) setImageError(error.message); }
+      const result = presentation.retryable
+        ? await api.retryPresentation(packageId, controller.signal)
+        : await api.startPresentation(lessonId, variant, message.text, controller.signal);
+      if (!controller.signal.aborted) setPresentation(result);
+    } catch (error) {
+      if (!controller.signal.aborted) setImageError(error.message);
+    } finally {
+      imageRequest.current = null;
+      if (!controller.signal.aborted) setImageSubmitting(false);
+    }
   };
 
   const imageReady = current?.image_status === 'ready' && !failedImages[current.id];
   const imageUrl = imageReady ? api.lectureMediaUrl(current.image_url) : '';
   const counts = presentation?.images;
-  const progressText = imageError ? '그림 준비 상태를 확인하지 못했습니다.' : counts?.total
-    ? `슬라이드 ${counts.total}장의 설명 그림 · ${counts.ready} / ${counts.total}장 준비 완료`
-    : imageBusy ? '강의에 맞는 설명 그림을 구성하고 있습니다.' : '핵심 내용을 슬라이드와 본문으로 살펴보세요.';
+  const idleImages = presentation?.status === 'idle';
+  const progressText = counts
+    ? idleImages ? `슬라이드 ${counts.total}장 · 그림 ${counts.total}장`
+      : `슬라이드 ${counts.total}장의 설명 그림 · ${counts.ready} / ${counts.total}장 준비 완료`
+    : imageError ? '그림 준비 상태를 확인하지 못했습니다.' : '저장된 설명 그림을 확인하고 있습니다.';
 
   return <div className="presentation-lecture">
     <div className="presentation-status" aria-live="polite">
       <span className={imageBusy && !imageError ? 'is-preparing' : ''}>{progressText}</span>
-      {(imageError || presentation?.retryable) && <button type="button" className="text-button" onClick={retryImages}>그림 다시 준비하기</button>}
+      {imageError && (!presentation || activePackageId) && <button type="button" className="text-button"
+        onClick={() => { setImageError(''); setImageReload(value => value + 1); }}>그림 상태 다시 확인</button>}
+      {presentation?.retryable && <button type="button" className="text-button" disabled={imageSubmitting}
+        onClick={requestImages}>{imageSubmitting ? '그림 준비 중…' : '그림 다시 준비하기'}</button>}
     </div>
     <div className="lecture-workspace">
       <section className="lecture-stage" aria-label="강의 슬라이드" aria-roledescription="슬라이드 쇼">
         <div className="slide-kicker"><span>개념을 그림으로 이해하기</span><span>{Math.min(slideIndex + 1, slides.length)} / {slides.length}</span></div>
         <div className="slide-content" aria-live="polite">
           <h3>{current?.title}</h3>
+          {idleImages && <div className="slide-image-action">
+            <button type="button" className="btn btn-primary" onClick={requestImages} disabled={imageSubmitting}>
+              {imageSubmitting ? '그림 준비 중…' : '설명 그림 만들기'}
+            </button>
+            <span>이 설명 탭의 전체 슬라이드에 한 장씩 만듭니다.</span>
+          </div>}
           {imageUrl && <button className="slide-image-button" type="button" onClick={() => expandedRef.current?.showModal()} aria-label="설명 그림 크게 보기">
             <img src={imageUrl} alt={current.caption || `${current.title} 설명 그림`} onError={() => setFailedImages(value => ({ ...value, [current.id]: true }))} />
             <span>크게 보기</span>
           </button>}
           {current?.caption && imageUrl && <p className="slide-caption">{current.caption}</p>}
           <ul className={`slide-points${imageUrl ? '' : ' without-image'}`}>{current?.bullets.slice(0, imageUrl ? 2 : 3).map((line, i) => <li key={i}>{line}</li>)}</ul>
-          {!imageUrl && ['pending', 'planning', 'generating'].includes(current?.image_status) && <p className="slide-image-note"><span className="presentation-spinner" /> {current?.image_status === 'pending' ? '이 슬라이드의 그림을 순서대로 준비합니다.' : '이 설명에 맞는 그림을 만들고 있습니다.'}</p>}
+          {!imageUrl && activePackageId && !imageError && ['pending', 'planning', 'generating'].includes(current?.image_status) && <p className="slide-image-note"><span className="presentation-spinner" /> {current?.image_status === 'pending' ? '이 슬라이드의 그림을 순서대로 준비합니다.' : '이 설명에 맞는 그림을 만들고 있습니다.'}</p>}
           {!imageUrl && (current?.image_status === 'failed' || failedImages[current?.id]) && <p className="slide-image-note">그림을 불러오지 못했습니다. 강의 본문으로 계속 공부할 수 있습니다.</p>}
         </div>
         <div className="slide-navigation">

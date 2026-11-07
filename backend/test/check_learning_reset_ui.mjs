@@ -63,7 +63,7 @@ async function setup(options = {}) {
       return json(route, {...body, deleted: {}, message: '학습 기록을 초기화했습니다.'});
     }
     if (p === '/api/learning/teach') return json(route, {text: '### 첫 개념\n\n원문에 근거한 설명입니다.', visual: null});
-    if (p === '/api/learning/presentations') return json(route, {package_id: 'a'.repeat(64), status: 'failed', slides: [], segments: [], images: {total: 0, ready: 0, failed: 0}, retryable: false});
+    if (p === '/api/learning/presentations/lookup') return json(route, {package_id: 'a'.repeat(64), status: 'idle', slides: [], segments: [], images: {total: 1, ready: 0, failed: 0}, retryable: false});
     if (p === '/api/chat') return json(route, {conversation_id: 'chat-1', answer: '기존 대화 답변입니다.'});
     if (p === '/api/quiz') return json(route, {attempt_id: 'quiz-a', question: '문제입니다.', topic: 'database', topic_label: '데이터베이스 구축', options: ['a', 'b', 'c', 'd']});
     if (p === '/api/question-bank/availability') return json(route, {cert: 'EIP', subjects: Object.entries(topics).map(([topic, label]) => ({topic, label, ready: 10}))});

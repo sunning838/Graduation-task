@@ -664,6 +664,8 @@
 .concept-learning .slide-kicker { display: flex; justify-content: space-between; gap: 12px; padding: 19px 26px 12px; color: var(--muted); font-size: 12px; }
 .concept-learning .slide-content { flex: 1; min-height: 0; overflow: auto; padding: 4px 26px 18px; }
 .concept-learning .slide-content h3 { margin: 0 0 16px; font-size: clamp(21px, 1.9vw, 29px); line-height: 1.45; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.concept-learning .slide-image-action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12px; color: var(--muted); }
+.concept-learning .slide-image-action .btn { min-height: 36px; padding: 0 12px; font-size: 13px; }
 .concept-learning .slide-image-button { display: block; position: relative; width: 100%; max-width: 650px; margin: 0 auto; padding: 0; background: #f5f7fa; border: 0; border-radius: 9px; overflow: hidden; cursor: zoom-in; }
 .concept-learning .slide-image-button img { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: clamp(140px, calc(100dvh - 640px), 300px); object-fit: contain; }
 .concept-learning .slide-image-button span { position: absolute; right: 8px; bottom: 8px; border-radius: 5px; padding: 4px 7px; background: rgba(20, 30, 40, .72); color: #fff; font-size: 10px; }

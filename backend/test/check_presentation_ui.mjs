@@ -31,11 +31,21 @@ const segments=[
 const slides=['스택의 구조','PUSH 과정','POP 과정'].map((title,index)=>({id:`slide-${index}`,title,segment_indices:[index*2,index*2+1],
  bullets:[['마지막에 들어온 데이터가 먼저 나옵니다.','입출력 위치는 스택의 맨 위입니다.'],['맨 위에 데이터를 추가합니다.'],['맨 위의 데이터를 꺼냅니다.']][index],image_status:'pending',image_url:null,caption:''}));
 const id='a'.repeat(64);
-let failed=false, pollCount=0, tutorRequests=0;
+let phase='idle', pollCount=0, tutorRequests=0, retries=0;
+const starts=[];
 const errors=[];
 const page=await browser.newPage({viewport:{width:1600,height:1000}});
 page.on('pageerror',error=>errors.push(error.message));
 const json=(route,value,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
+const variantText=(markdown,variant)=>variant==='simple' ? markdown.replaceAll('자료 구조','데이터를 담는 구조') : markdown;
+function presentation(status, variant) {
+ const ready=status==='ready' ? slides.length : ['generating','partial'].includes(status) ? 1 : 0;
+ const failed=status==='partial' ? slides.length-ready : 0;
+ return {package_id:id,status,segments:segments.map(segment=>({...segment,markdown:variantText(segment.markdown,variant)})),
+  images:{total:slides.length,ready,failed},retryable:failed>0,
+  slides:slides.map((slide,index)=>({...slide,image_status:index<ready ? 'ready' : failed ? 'failed' : 'pending',
+   image_url:index<ready ? `/api/learning/presentations/${id}/images/${slide.id}` : null}))};
+}
 await page.route(url=>url.pathname.startsWith('/api/'),async route=>{
  const url=new URL(route.request().url());const path=url.pathname;
  const body=route.request().method()==='POST' ? route.request().postDataJSON() : null;
@@ -45,23 +55,26 @@ await page.route(url=>url.pathname.startsWith('/api/'),async route=>{
  if(path==='/api/learning/progress') return json(route,{});
  if(path==='/api/learning/teach') {
   if(body.question){tutorRequests++;return json(route,{text:'후입선출은 나중에 넣은 데이터를 먼저 꺼내는 방식입니다.',visual:null});}
-  return json(route,{text:live?.text || (body.variant==='simple' ? text.replaceAll('자료 구조','데이터를 담는 구조') : text),visual:null});
+  return json(route,{text:live?.text || variantText(text,body.variant),visual:null});
  }
  if(path.startsWith('/api/learning/presentations') && live) {
-  if(path==='/api/learning/presentations'){
-   const cached=await fetch(backend+'/api/learning/presentations/'+live.result.package_id);
-   return json(route,await cached.json(),cached.status);
-  }
+  assert.notEqual(path,'/api/learning/presentations','Cached-image checks must never send a generation request');
+  assert.ok(!path.endsWith('/retry'),'Cached-image checks must never retry image generation');
   const response=await route.fetch({url:backend+path});
   return route.fulfill({response});
  }
- if(path==='/api/learning/presentations') return json(route,{package_id:id,status:'planning',slides,segments,images:{total:slides.length,ready:0,failed:0}});
- if(path.endsWith('/retry')) { failed=false;return json(route,{package_id:id,status:'generating',slides,segments,images:{total:3,ready:0,failed:0}}); }
+ if(path==='/api/learning/presentations/lookup') return json(route,presentation(body.variant==='basic' ? phase : 'idle',body.variant));
+ if(path==='/api/learning/presentations') {
+  starts.push(body); phase='planning'; return json(route,presentation(phase));
+ }
+ if(path.endsWith('/retry')) { retries++; phase='ready'; return json(route,presentation(phase)); }
  if(path===`/api/learning/presentations/${id}`){
   pollCount++;
-  return json(route,{package_id:id,status:failed?'failed':'generating',slides:slides.map(s=>({...s,image_status:failed?'failed':'generating'})),segments,
-   images:{total:3,ready:0,failed:failed?3:0},retryable:failed,message:failed?'그림을 준비하지 못했습니다.':''});
+  if(phase==='planning') phase='generating';
+  return json(route,presentation(phase));
  }
+ if(path.startsWith(`/api/learning/presentations/${id}/images/`)) return route.fulfill({contentType:'image/svg+xml',
+  body:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="lightblue"/></svg>'});
  if(path==='/api/learning/tts') return json(route,{audio_url:'/api/learning/tts/offline/audio',timeline:segments});
  if(path==='/api/learning/tts/offline/audio') {
   const rate=8000, samples=30*rate;const wav=Buffer.alloc(44+samples*2);
@@ -98,6 +111,10 @@ try{
   assert.equal(imageSources.size,live.result.slides.length);
   await page.locator('.slide-dots button').first().click();
  }else{
+  await page.getByRole('button',{name:'설명 그림 만들기',exact:true}).waitFor();
+  await page.getByText('슬라이드 3장 · 그림 3장',{exact:true}).waitFor();
+  assert.equal(starts.length,0);
+  assert.equal(await page.locator('.slide-image-note').count(),0);
   await page.getByRole('button',{name:'다음 →',exact:true}).click();
   assert.equal(await page.locator('.slide-content h3').textContent(),'PUSH 과정');
   await page.getByRole('button',{name:'← 이전',exact:true}).click();
@@ -125,13 +142,31 @@ try{
  await page.locator('.presentation-heading').scrollIntoViewIfNeeded();
  await page.screenshot({path:new URL(live?'live-desktop.png':'desktop.png',output).pathname.replace(/^\//,'')});
  if(!live){
-  failed=true;
+  assert.equal(starts.length,0,'Opening the lecture, navigating, audio and questions must not create images');
+  assert.equal(pollCount,0);
+  await page.getByRole('tab',{name:'쉬운 설명',exact:true}).click();
+  await page.getByRole('region',{name:'전체 강의 본문',exact:true}).getByText('스택은 마지막에 들어온 데이터가 먼저 나오는 데이터를 담는 구조입니다.',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'설명 그림 만들기',exact:true}).waitFor();
+  assert.equal(starts.length,0,'Switching explanations must not create images');
+  await page.getByRole('tab',{name:'기본 설명',exact:true}).click();
+  await page.getByRole('button',{name:'다음 →',exact:true}).click();
+  await page.getByRole('button',{name:'설명 그림 만들기',exact:true}).click();
+  await page.getByText(/1 \/ 3장 준비 완료/).waitFor();
+  assert.deepEqual(starts,[{lesson_id:'test-lesson',variant:'basic',text}]);
+  await page.locator('.slide-dots button').first().click();
+  await page.locator('.slide-image-button img').evaluate(img=>img.decode());
+  phase='partial';
   await page.getByRole('button',{name:'그림 다시 준비하기',exact:true}).waitFor({timeout:10000});
   assert.equal(await page.locator('.reference-scroll').isVisible(),true);
   await page.getByRole('button',{name:'그림 다시 준비하기',exact:true}).click();
+  await page.getByText(/3 \/ 3장 준비 완료/).waitFor();
+  assert.equal(retries,1);
   await page.getByRole('tab',{name:'쉬운 설명',exact:true}).click();
-  await page.getByRole('region',{name:'전체 강의 본문',exact:true}).getByText('스택은 마지막에 들어온 데이터가 먼저 나오는 데이터를 담는 구조입니다.',{exact:true}).waitFor();
-  assert.equal(await page.locator('.lecture-reference').isVisible(),true);
+  await page.getByRole('button',{name:'설명 그림 만들기',exact:true}).waitFor();
+  await page.getByRole('tab',{name:'기본 설명',exact:true}).click();
+  await page.getByText(/3 \/ 3장 준비 완료/).waitFor();
+  assert.equal(await page.getByRole('button',{name:'설명 그림 만들기',exact:true}).count(),0);
+  assert.equal(starts.length,1,'Reopening a cached lecture must not regenerate its images');
  }
  await page.setViewportSize({width:1366,height:768});await page.locator('.presentation-heading').scrollIntoViewIfNeeded();
  await page.screenshot({path:new URL(live?'live-laptop.png':'laptop.png',output).pathname.replace(/^\//,'')});
@@ -141,7 +176,7 @@ try{
  assert.equal(overflow,false,'Mobile layout must not overflow horizontally');
  await page.screenshot({path:new URL(live?'live-mobile.png':'mobile.png',output).pathname.replace(/^\//,'')});
  assert.deepEqual(errors,[]);
- console.log(JSON.stringify({checks:'transcript open, slide navigation, audio seek/speed/highlight, free reading, question drawer, retry, variants, responsive layout',liveImage:liveMode,polls:pollCount,screenshots:output.href}));
+ console.log(JSON.stringify({checks:'manual generation, cached images, slide navigation, audio seek/speed/highlight, free reading, question drawer, retry, variants, responsive layout',liveImage:liveMode,polls:pollCount,screenshots:output.href}));
 }catch(error){
  await page.screenshot({path:new URL('failure.png',output).pathname.replace(/^\//,'')});
  console.error('Browser errors:',errors,'Page:',(await page.locator('body').innerText()).slice(0,1000));
