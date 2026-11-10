@@ -4,8 +4,11 @@ import remarkGfm from 'remark-gfm';
 import * as api from '../api/lessonClient.js';
 import { Visual, Research } from './ChatMessage.jsx';
 import { localLecture, lectureFromSegments, slideForSegment, timelineSegment, timeLabel } from './lectureSlides.js';
+import { fixKoreanBold, markdownComponents } from './markdownFix.jsx';
+import { ChatIcon, ChevronLeft, ChevronRight, ExpandIcon, ImageIcon, PauseIcon, PlayIcon } from './icons.jsx';
 
 const SETTLED = new Set(['idle', 'ready', 'partial', 'failed']);
+const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
 export default function PresentationLecture({ lessonId, variant, message, onOpenTutor }) {
   const local = useMemo(() => localLecture(message.text), [message.text]);
@@ -22,6 +25,8 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
   const [speed, setSpeed] = useState(1);
   const [slideIndex, setSlideIndex] = useState(0);
   const [activeSegment, setActiveSegment] = useState(-1);
+  // 본문 따라가기: 기본으로 켜 두고, 사용자가 본문을 직접 스크롤하면 잠시 끕니다.
+  // 재생·슬라이드 이동·문단 듣기를 누르면 다시 켜집니다.
   const [follow, setFollow] = useState(true);
   const [failedImages, setFailedImages] = useState({});
   const audioRef = useRef(null);
@@ -38,7 +43,6 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
   const current = slides[Math.min(slideIndex, slides.length - 1)];
   const packageId = presentation?.package_id;
   const activePackageId = presentation && !SETTLED.has(presentation.status) ? packageId : null;
-  const imageBusy = imageSubmitting || Boolean(activePackageId);
 
   useEffect(() => {
     if (packageId && !activePackageId) return;
@@ -90,13 +94,13 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
   const goToParagraph = index => {
     const box = transcriptRef.current, paragraph = paragraphRefs.current[index];
     if (!box || !paragraph) return;
-    box.scrollTo({ top: Math.max(0, paragraph.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 55), behavior: 'smooth' });
+    box.scrollTo({ top: Math.max(0, paragraph.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 24), behavior: 'smooth' });
   };
 
   useEffect(() => {
     if (!follow || activeSegment < 0) return;
     const box = transcriptRef.current, paragraph = paragraphRefs.current[activeSegment];
-    if (box && paragraph) box.scrollTo({ top: Math.max(0, paragraph.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 55), behavior: 'smooth' });
+    if (box && paragraph) box.scrollTo({ top: Math.max(0, paragraph.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 24), behavior: 'smooth' });
   }, [activeSegment, follow]);
 
   const syncAudio = () => {
@@ -112,6 +116,7 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
   const startAudio = async () => {
     if (audioLoading) return;
     setAudioError('');
+    setFollow(true);
     if (audio) {
       if (playing) audioRef.current.pause();
       else audioRef.current.play().catch(() => setAudioError('음성을 재생하지 못했습니다. 다시 눌러 주세요.'));
@@ -133,16 +138,18 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
   const changeSlide = index => {
     if (index < 0 || index >= slides.length) return;
     setSlideIndex(index);
+    setFollow(true);
     const target = slides[index].segment_indices[0];
     if (audio && audioRef.current) {
       const item = audio.timeline.find(seg => seg.index === target);
       if (item) { audioRef.current.currentTime = item.start; setSeconds(item.start); setActiveSegment(target); }
     }
-    if (follow) goToParagraph(target);
+    goToParagraph(target);
   };
 
   const seekParagraph = index => {
     if (!audioRef.current || !audio) return;
+    setFollow(true);
     audioRef.current.currentTime = audio.timeline[index].start;
     syncAudio();
     audioRef.current.play().catch(() => setAudioError('재생 버튼을 눌러 주세요.'));
@@ -170,76 +177,87 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
 
   const imageReady = current?.image_status === 'ready' && !failedImages[current.id];
   const imageUrl = imageReady ? api.lectureMediaUrl(current.image_url) : '';
-  const counts = presentation?.images;
-  const idleImages = presentation?.status === 'idle';
-  const progressText = counts
-    ? idleImages ? `슬라이드 ${counts.total}장 · 그림 ${counts.total}장`
-      : `슬라이드 ${counts.total}장의 설명 그림 · ${counts.ready} / ${counts.total}장 준비 완료`
-    : imageError ? '그림 준비 상태를 확인하지 못했습니다.' : '저장된 설명 그림을 확인하고 있습니다.';
+  const canCreateImages = presentation?.status === 'idle' || presentation?.retryable;
+  const imagePreparing = !imageUrl && activePackageId && !imageError && ['pending', 'planning', 'generating'].includes(current?.image_status);
+  const imageFailed = !imageUrl && (current?.image_status === 'failed' || failedImages[current?.id]);
+  const slideNumber = Math.min(slideIndex + 1, slides.length);
 
-  return <div className="presentation-lecture">
-    <div className="presentation-status" aria-live="polite">
-      <span className={imageBusy && !imageError ? 'is-preparing' : ''}>{progressText}</span>
-      {imageError && (!presentation || activePackageId) && <button type="button" className="text-button"
-        onClick={() => { setImageError(''); setImageReload(value => value + 1); }}>그림 상태 다시 확인</button>}
-      {presentation?.retryable && <button type="button" className="text-button" disabled={imageSubmitting}
-        onClick={requestImages}>{imageSubmitting ? '그림 준비 중…' : '그림 다시 준비하기'}</button>}
-    </div>
-    <div className="lecture-workspace">
-      <section className="lecture-stage" aria-label="강의 슬라이드" aria-roledescription="슬라이드 쇼">
-        <div className="slide-kicker"><span>개념을 그림으로 이해하기</span><span>{Math.min(slideIndex + 1, slides.length)} / {slides.length}</span></div>
-        <div className="slide-content" aria-live="polite">
-          <h3>{current?.title}</h3>
-          {idleImages && <div className="slide-image-action">
-            <button type="button" className="btn btn-primary" onClick={requestImages} disabled={imageSubmitting}>
-              {imageSubmitting ? '그림 준비 중…' : '설명 그림 만들기'}
-            </button>
-            <span>이 설명 탭의 전체 슬라이드에 한 장씩 만듭니다.</span>
-          </div>}
-          {imageUrl && <button className="slide-image-button" type="button" onClick={() => expandedRef.current?.showModal()} aria-label="설명 그림 크게 보기">
-            <img src={imageUrl} alt={current.caption || `${current.title} 설명 그림`} onError={() => setFailedImages(value => ({ ...value, [current.id]: true }))} />
-            <span>크게 보기</span>
-          </button>}
-          {current?.caption && imageUrl && <p className="slide-caption">{current.caption}</p>}
-          <ul className={`slide-points${imageUrl ? '' : ' without-image'}`}>{current?.bullets.slice(0, imageUrl ? 2 : 3).map((line, i) => <li key={i}>{line}</li>)}</ul>
-          {!imageUrl && activePackageId && !imageError && ['pending', 'planning', 'generating'].includes(current?.image_status) && <p className="slide-image-note"><span className="presentation-spinner" /> {current?.image_status === 'pending' ? '이 슬라이드의 그림을 순서대로 준비합니다.' : '이 설명에 맞는 그림을 만들고 있습니다.'}</p>}
-          {!imageUrl && (current?.image_status === 'failed' || failedImages[current?.id]) && <p className="slide-image-note">그림을 불러오지 못했습니다. 강의 본문으로 계속 공부할 수 있습니다.</p>}
+  // 그림 자리에 무엇을 보여줄지 한 곳에서 결정합니다.
+  let figure = null;
+  if (imageUrl) {
+    figure = <button className="ls-figure-button" type="button" onClick={() => expandedRef.current?.showModal()} aria-label="설명 그림 크게 보기">
+      <img src={imageUrl} alt={current.caption || `${current.title} 설명 그림`} onError={() => setFailedImages(value => ({ ...value, [current.id]: true }))} />
+      <span className="ls-figure-zoom"><ExpandIcon size={13} /></span>
+    </button>;
+  } else if (canCreateImages) {
+    figure = <button className="ls-pill ls-pill-strong" type="button" onClick={requestImages} disabled={imageSubmitting}>
+      <ImageIcon />{imageSubmitting ? '그림 준비 중…' : presentation?.retryable ? '그림 다시 만들기' : '설명 그림 만들기'}
+    </button>;
+  } else if (imagePreparing) {
+    figure = <p className="ls-figure-note"><span className="presentation-spinner" />{current?.image_status === 'pending' ? '순서대로 그림을 준비하고 있어요' : '그림을 만들고 있어요'}</p>;
+  } else if (imageFailed) {
+    figure = <p className="ls-figure-note">그림을 불러오지 못했어요</p>;
+  } else if (imageError) {
+    figure = <button className="ls-pill" type="button" onClick={() => { setImageError(''); setImageReload(value => value + 1); }}>그림 상태 다시 확인</button>;
+  }
+
+  return <div className="ls-lecture">
+    <div className="ls-grid">
+      <section className="ls-card ls-slide" aria-label="강의 슬라이드" aria-roledescription="슬라이드 쇼">
+        <div className="ls-slide-head">
+          <h2>{current?.title}</h2>
+          <span className="ls-chip">{slideNumber} / {slides.length}</span>
         </div>
-        <div className="slide-navigation">
-          <button className="btn btn-ghost" type="button" disabled={slideIndex === 0} onClick={() => changeSlide(slideIndex - 1)}>← 이전</button>
-          <div className="slide-dots" aria-label="슬라이드 선택">{slides.map((slide, index) => <button key={slide.id} type="button" className={index === slideIndex ? 'is-current' : ''} aria-label={`${index + 1}번 슬라이드 ${slide.title}`} aria-current={index === slideIndex ? 'step' : undefined} onClick={() => changeSlide(index)} />)}</div>
-          <button className="btn btn-ghost" type="button" disabled={slideIndex >= slides.length - 1} onClick={() => changeSlide(slideIndex + 1)}>다음 →</button>
+        <div className={`ls-figure${imageUrl ? ' has-image' : ''}`}>{figure}</div>
+        {current?.caption && imageUrl && <p className="ls-caption">{current.caption}</p>}
+        <ul className="ls-points">{current?.bullets.slice(0, imageUrl ? 2 : 3).map((line, i) => <li key={i}>{line}</li>)}</ul>
+        <div className="ls-slide-nav">
+          <button className="ls-round" type="button" aria-label="이전 슬라이드" disabled={slideIndex === 0} onClick={() => changeSlide(slideIndex - 1)}><ChevronLeft /></button>
+          <div className="ls-dots" aria-label="슬라이드 선택">{slides.map((slide, index) => <button key={slide.id} type="button" className={index === slideIndex ? 'is-current' : ''} aria-label={`${index + 1}번 슬라이드 ${slide.title}`} aria-current={index === slideIndex ? 'step' : undefined} onClick={() => changeSlide(index)} />)}</div>
+          <button className="ls-round" type="button" aria-label="다음 슬라이드" disabled={slideIndex >= slides.length - 1} onClick={() => changeSlide(slideIndex + 1)}><ChevronRight /></button>
         </div>
       </section>
-      <section className="lecture-reference" aria-label="전체 강의 본문">
-        <div className="reference-heading"><div><span className="reference-kicker">언제든 읽어볼 수 있는</span><h3>강의 본문</h3></div>
-          <button className="text-button" type="button" disabled={activeSegment < 0} onClick={() => { setFollow(true); goToParagraph(activeSegment); }}>현재 강의 위치로</button></div>
-        <div className="reference-scroll" ref={transcriptRef} onWheel={() => setFollow(false)} onTouchStart={() => setFollow(false)} onKeyDown={event => { if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) setFollow(false); }} tabIndex={0}>
+
+      <section className="ls-card ls-reference" aria-label="강의 본문">
+        <div className="ls-reference-head">
+          <h2>강의 본문</h2>
+          <button className="ls-pill" type="button" onClick={onOpenTutor}><ChatIcon />튜터에게 질문</button>
+        </div>
+        <div className="ls-reference-scroll" ref={transcriptRef} onWheel={() => setFollow(false)} onTouchStart={() => setFollow(false)} onKeyDown={event => { if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) setFollow(false); }} tabIndex={0}>
           {segments.map((segment, index) => <section key={segment.index} ref={element => { paragraphRefs.current[index] = element; }} className={`reference-paragraph${index === activeSegment ? ' is-speaking' : ''}`} aria-current={index === activeSegment ? 'true' : undefined}>
-            <div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm]}>{segment.markdown}</ReactMarkdown></div>
+            <div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{fixKoreanBold(segment.markdown)}</ReactMarkdown></div>
             {audio && <button className="paragraph-play text-button" type="button" onClick={() => seekParagraph(index)} aria-label={`${index + 1}번 문단부터 듣기`}>여기부터 듣기</button>}
           </section>)}
           {message.visual && <div className="reference-appendix"><Visual visual={message.visual} /></div>}
           {message.research?.status === 'supplemented' && <Research research={message.research} />}
         </div>
+        <div className="ls-player">
+          <audio ref={audioRef} src={audio ? api.lectureMediaUrl(audio.audio_url) : undefined} preload="metadata" onTimeUpdate={syncAudio} onSeeking={syncAudio}
+            onLoadedMetadata={() => { setDuration(audioRef.current.duration || 0); syncAudio(); }} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+            onEnded={() => setPlaying(false)} onError={() => { if (audio) setAudioError('음성 파일을 불러오지 못했습니다. 강의를 다시 열어 주세요.'); }} />
+          <button className="ls-play" type="button" onClick={startAudio} disabled={audioLoading}
+            aria-label={audioLoading ? '음성 준비 중' : playing ? '일시정지' : '음성으로 듣기'}>
+            {audioLoading ? <span className="ls-play-spinner" /> : playing ? <PauseIcon /> : <PlayIcon />}
+          </button>
+          <div className="ls-seek">
+            <input type="range" aria-label="강의 재생 위치" min="0" max={duration || 1} step="0.1" value={Math.min(seconds, duration || 1)} disabled={!audio || !duration}
+              onChange={event => { audioRef.current.currentTime = Number(event.target.value); syncAudio(); }} />
+            <div className="ls-times"><span>{timeLabel(seconds)}</span><span>{timeLabel(duration)}</span></div>
+          </div>
+          <select className="ls-speed" aria-label="강의 재생 속도" value={speed} onChange={event => setSpeed(Number(event.target.value))}>
+            {SPEEDS.map(value => <option key={value} value={value}>{value}x</option>)}
+          </select>
+        </div>
       </section>
     </div>
-    <div className="lecture-controls">
-      <audio ref={audioRef} src={audio ? api.lectureMediaUrl(audio.audio_url) : undefined} preload="metadata" onTimeUpdate={syncAudio} onSeeking={syncAudio}
-        onLoadedMetadata={() => { setDuration(audioRef.current.duration || 0); syncAudio(); }} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
-        onEnded={() => setPlaying(false)} onError={() => { if (audio) setAudioError('음성 파일을 불러오지 못했습니다. 강의를 다시 열어 주세요.'); }} />
-      <button className="btn btn-primary lecture-play" type="button" onClick={startAudio} disabled={audioLoading}>
-        {audioLoading ? '음성 준비 중…' : playing ? 'Ⅱ 일시정지' : audio ? '▶ 재생' : '▶ 음성으로 듣기'}</button>
-      <div className="lecture-seek"><input type="range" aria-label="강의 재생 위치" min="0" max={duration || 1} step="0.1" value={Math.min(seconds, duration || 1)} disabled={!audio || !duration}
-        onChange={event => { audioRef.current.currentTime = Number(event.target.value); syncAudio(); }} /><span>{timeLabel(seconds)} / {timeLabel(duration)}</span></div>
-      <label className="lecture-speed"><span>배속</span><select aria-label="강의 재생 속도" value={speed} onChange={event => setSpeed(Number(event.target.value))}>{[0.75, 1, 1.25, 1.5, 2].map(value => <option key={value} value={value}>{value}x</option>)}</select></label>
-      <label className="lecture-follow"><input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} />본문 따라가기</label>
-      <button className="btn btn-ghost" type="button" onClick={onOpenTutor}>튜터에게 질문</button>
-    </div>
-    {audioLoading && <p className="lecture-feedback" role="status">음성을 준비하고 있습니다. 슬라이드와 본문은 먼저 읽을 수 있습니다.</p>}
-    {audioError && <p className="lecture-feedback is-error" role="alert">{audioError}</p>}
-    {(imageError || presentation?.message) && <p className="lecture-feedback" role="status">{imageError || presentation.message}</p>}
-    <dialog ref={expandedRef} className="lecture-image-dialog"><button className="btn btn-ghost" type="button" onClick={() => expandedRef.current.close()}>닫기</button>
-      {imageUrl && <img src={imageUrl} alt={current.caption || current.title} />}</dialog>
+
+    {audioLoading && <p className="ls-feedback" role="status">음성을 준비하고 있어요. 그동안 슬라이드와 본문을 먼저 읽을 수 있어요.</p>}
+    {audioError && <p className="ls-feedback is-error" role="alert">{audioError}</p>}
+    {(imageError || presentation?.message) && <p className="ls-feedback" role="status">{imageError || presentation.message}</p>}
+
+    <dialog ref={expandedRef} className="lecture-image-dialog ls-image-dialog">
+      <button className="ls-round" type="button" aria-label="닫기" onClick={() => expandedRef.current.close()}>×</button>
+      {imageUrl && <img src={imageUrl} alt={current.caption || current.title} />}
+    </dialog>
   </div>;
 }

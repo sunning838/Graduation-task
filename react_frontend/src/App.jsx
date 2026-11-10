@@ -139,30 +139,34 @@ function App() {
   // =========================================================
   // AI 채팅
   // =========================================================
-  const sendMessage = async () => {
-    const text = input.trim();
-    if (!text || chatRequest.current || !selectedCertId) return;
+  // override: 개념 학습 튜터 창에서 보낸 질문, context: 서버에만 함께 보내는 단원 정보
+  const sendMessage = async (override, context = "") => {
+    const fromInput = typeof override !== "string";
+    const text = (fromInput ? input : override).trim();
+    if (!text || chatRequest.current || !selectedCertId) return false;
     const controller = new AbortController();
     chatRequest.current = controller;
     setChatLoading(true);
     setChatError("");
     setMessages(prev => [...prev, { id: `${Date.now()}-user`, role: "user", content: text }]);
-    setInput("");
+    if (fromInput) setInput("");
     try {
       const data = await apiRequest("/api/chat", {
         signal: controller.signal,
         body: {
-          message: text, cert: selectedCertId, answer_length: answerLength,
+          message: context ? `${context}\n\n${text}` : text, cert: selectedCertId, answer_length: answerLength,
           conversation_id: conversationId
         },
       });
-      if (chatRequest.current !== controller) return;
+      if (chatRequest.current !== controller) return false;
       setConversationId(data.conversation_id);
       setMessages(prev => [...prev, { id: `${Date.now()}-assistant`, role: "assistant", content: data.answer }]);
+      return true;
     } catch (error) {
-      if (chatRequest.current !== controller || error.name === "AbortError") return;
+      if (chatRequest.current !== controller || error.name === "AbortError") return false;
       setChatError(error.message);
-      setInput(text);
+      if (fromInput) setInput(text);
+      return false;
     } finally {
       if (chatRequest.current === controller) {
         chatRequest.current = null;
@@ -505,7 +509,8 @@ function App() {
         </button>
       </header>
       {currentPage === "home" && <div className="study-home"><HomePage onStart={openStudy} /></div>}
-      {currentPage === "learn" && <div className="concept-learning"><LearningPage returnLessonId={learningReturnId} onLessonChange={setLearningReturnId} onPractice={openLessonPractice} /></div>}
+      {currentPage === "learn" && <div className="concept-learning"><LearningPage returnLessonId={learningReturnId} onLessonChange={setLearningReturnId} onPractice={openLessonPractice}
+        tutorChat={{ messages, loading: chatLoading, error: chatError, ready: Boolean(selectedCertId), send: sendMessage }} /></div>}
       {/* =================================================
             AI Tutor
          ================================================= */}

@@ -1,20 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 import ChatMessage from './ChatMessage.jsx';
 
-export default function TutorPane({ tab, messages, canAsk, loading, error, onAsk, onRetry }) {
+// 대화는 사이드바 'AI 튜터'와 같은 대화입니다.
+// chat: App.jsx에서 내려주는 { messages, loading, error, ready, send(text, context) }
+export default function TutorPane({ tab, lessonTitle, chat }) {
   const [question, setQuestion] = useState('');
+  const [lastQuestion, setLastQuestion] = useState('');
   const boxRef = useRef(null);
+  const messages = chat?.messages || [];
+  const loading = Boolean(chat?.loading);
+  const canAsk = Boolean(chat?.ready);
 
   // 새 답변이 오면 질문 목록 맨 아래로 스크롤
   useEffect(() => {
     if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
-  }, [messages.length, loading, error]);
+  }, [messages.length, loading, chat?.error]);
 
-  const submit = () => {
+  const ask = async text => {
+    setLastQuestion(text);
+    const ok = await chat.send(text, `[개념 학습 중인 단원: ${lessonTitle}]`);
+    if (ok) setLastQuestion('');
+    return ok;
+  };
+
+  const submit = async () => {
     const q = question.trim();
     if (!q || !canAsk || loading) return;
-    onAsk(q);
     setQuestion('');
+    const ok = await ask(q);
+    if (!ok) setQuestion(q);
   };
 
   return (
@@ -32,16 +46,18 @@ export default function TutorPane({ tab, messages, canAsk, loading, error, onAsk
           {messages.length === 0 && !loading && (
             <p className="muted">직접 입력한 질문과 튜터의 답변이 여기에 쌓입니다.</p>
           )}
-          {messages.map((m, i) => (
-            <ChatMessage key={i} message={m} />
+          {messages.map(m => (
+            <ChatMessage key={m.id} message={{ role: m.role, text: m.content }} />
           ))}
           {loading && <p className="muted">답변을 준비하고 있어요…</p>}
-          {error && (
+          {chat?.error && !loading && (
             <div className="notice">
               답변을 준비하지 못했습니다. 다시 시도해 주세요.
-              <button type="button" className="btn btn-ghost" onClick={onRetry}>
-                답변 다시 요청
-              </button>
+              {lastQuestion && (
+                <button type="button" className="btn btn-ghost" onClick={() => ask(lastQuestion)}>
+                  답변 다시 요청
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -56,7 +72,7 @@ export default function TutorPane({ tab, messages, canAsk, loading, error, onAsk
               // 한글 입력 중 Enter가 두 번 처리되는 것 방지
               if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit();
             }}
-            placeholder={canAsk ? '이 부분이 궁금해요…' : '설명이 준비되면 질문할 수 있어요'}
+            placeholder={canAsk ? '이 부분이 궁금해요…' : 'AI 튜터에 연결하는 중이에요'}
             disabled={!canAsk || loading}
           />
           <button

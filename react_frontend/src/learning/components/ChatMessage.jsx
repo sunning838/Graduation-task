@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import GraphDiagram from './GraphDiagram.jsx';
+import { fixKoreanBold, markdownComponents } from './markdownFix.jsx';
 
 export default function ChatMessage({ message }) {
   const { role, text, visual, research } = message;
@@ -9,7 +10,7 @@ export default function ChatMessage({ message }) {
     <div className={`msg msg-${role}`}>
       <div className="msg-role">{role === 'user' ? '나' : '튜터'}</div>
       <div className="markdown">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{fixKoreanBold(text)}</ReactMarkdown>
       </div>
       {visual && <Visual visual={visual} />}
       {research?.status === 'supplemented' && <Research research={research} />}
