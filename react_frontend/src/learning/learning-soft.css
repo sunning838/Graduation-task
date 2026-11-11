@@ -153,3 +153,9 @@
   .concept-learning .ls-play-spinner { animation: none; }
   .concept-learning .ls-unit, .concept-learning .ls-dots button { transition: none; }
 }
+/* The tutor stays available even while the lecture is loading. */
+.concept-learning .ls-header-actions { flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .concept-learning .ls-header-actions { width: 100%; gap: 8px; }
+  .concept-learning .ls-header-actions .ls-pill { padding-left: 12px; padding-right: 12px; }
+}

@@ -5,12 +5,12 @@ import * as api from '../api/lessonClient.js';
 import { Visual, Research } from './ChatMessage.jsx';
 import { localLecture, lectureFromSegments, slideForSegment, timelineSegment, timeLabel } from './lectureSlides.js';
 import { fixKoreanBold, markdownComponents } from './markdownFix.jsx';
-import { ChatIcon, ChevronLeft, ChevronRight, ExpandIcon, ImageIcon, PauseIcon, PlayIcon } from './icons.jsx';
+import { ChevronLeft, ChevronRight, ExpandIcon, ImageIcon, PauseIcon, PlayIcon } from './icons.jsx';
 
 const SETTLED = new Set(['idle', 'ready', 'partial', 'failed']);
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
-export default function PresentationLecture({ lessonId, variant, message, onOpenTutor }) {
+export default function PresentationLecture({ lessonId, variant, message }) {
   const local = useMemo(() => localLecture(message.text), [message.text]);
   const [presentation, setPresentation] = useState(null);
   const [imageError, setImageError] = useState('');
@@ -221,7 +221,6 @@ export default function PresentationLecture({ lessonId, variant, message, onOpen
       <section className="ls-card ls-reference" aria-label="강의 본문">
         <div className="ls-reference-head">
           <h2>강의 본문</h2>
-          <button className="ls-pill" type="button" onClick={onOpenTutor}><ChatIcon />튜터에게 질문</button>
         </div>
         <div className="ls-reference-scroll" ref={transcriptRef} onWheel={() => setFollow(false)} onTouchStart={() => setFollow(false)} onKeyDown={event => { if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) setFollow(false); }} tabIndex={0}>
           {segments.map((segment, index) => <section key={segment.index} ref={element => { paragraphRefs.current[index] = element; }} className={`reference-paragraph${index === activeSegment ? ' is-speaking' : ''}`} aria-current={index === activeSegment ? 'true' : undefined}>

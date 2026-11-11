@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import ProgressBar from './ProgressBar.jsx';
 
 export default function LessonIndex({ config, cert, lessons, states, onOpen }) {
   const subjects = [...new Set(lessons.map((l) => l.subject))];
 
   return (
     <section>
-      <h2 className="section-title">학습 목차</h2>
+      <h2 id="learning-index-heading" tabIndex={-1} className="section-title">학습 목차</h2>
       {subjects.map((subject) => (
         <SubjectGroup
           key={`${cert}-${subject}`}
@@ -14,24 +13,28 @@ export default function LessonIndex({ config, cert, lessons, states, onOpen }) {
           group={lessons.filter((l) => l.subject === subject)}
           states={states}
           onOpen={onOpen}
-          defaultOpen={subjects.length === 1}
         />
       ))}
     </section>
   );
 }
 
-function SubjectGroup({ label, group, states, onOpen, defaultOpen }) {
+function SubjectGroup({ label, group, states, onOpen }) {
   const [selected, setSelected] = useState(group[0].id);
   const complete = group.filter((l) => states[l.id]?.status === 'complete').length;
 
   return (
-    <details className="subject" open={defaultOpen}>
+    <details className="subject">
       <summary>
-        {label} <span className="muted small">{complete}/{group.length} 완료</span>
+        {label}
       </summary>
       <div className="subject-body">
-        <ProgressBar value={complete / group.length} />
+        <div className="subject-progress">
+          <span className="subject-progress-count" aria-hidden="true">{complete} / {group.length} 완료</span>
+          <div className="subject-progress-segments" role="progressbar" aria-label={`${label} 학습 진도`} aria-valuemin={0} aria-valuemax={group.length} aria-valuenow={complete} aria-valuetext={`${group.length}개 단원 중 ${complete}개 완료`} style={{ gridTemplateColumns: `repeat(${group.length}, minmax(0, 1fr))` }}>
+            {group.map(lesson => <span key={lesson.id} className={`subject-progress-segment${states[lesson.id]?.status === 'complete' ? ' is-complete' : ''}`} title={`${lesson.title} · ${states[lesson.id]?.status === 'complete' ? '완료' : '미완료'}`} aria-hidden="true" />)}
+          </div>
+        </div>
         <label className="field">
           <span className="field-label">학습 항목</span>
           <select value={selected} onChange={(e) => setSelected(e.target.value)}>

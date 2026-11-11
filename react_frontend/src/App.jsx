@@ -1,3 +1,4 @@
+import PdfSummaryPage from "./learning/pages/PdfSummaryPage.jsx";
 import LearningPage from "./learning/pages/LearningPage.jsx";
 import HomePage from "./learning/pages/HomePage.jsx";
 import "./learning/learning.css";
@@ -51,6 +52,8 @@ function App() {
   // 개념학습실 / 문제풀이실은 프로필 진입 여부와 별개로 유지합니다.
   const [activeArea, setActiveArea] = useState("study");
   const [profileReturnPage, setProfileReturnPage] = useState("learn");
+  const [learningTitleTarget, setLearningTitleTarget] = useState(null);
+  const [learningActionsTarget, setLearningActionsTarget] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedCert, setSelectedCert] = useState("정보처리기사");
@@ -459,12 +462,15 @@ function App() {
             <button type="button" className={`menu-item ${currentPage === "studyChat" ? "active" : ""}`} onClick={openStudyChat}>
               <span className="menu-icon">◉</span>{!sidebarCollapsed && <span>AI 튜터</span>}
             </button>
-          </> : <>
-            <button type="button" className={`menu-item ${currentPage === "chat" ? "active" : ""}`} onClick={() => setCurrentPage("chat")}>
-              <span className="menu-icon">◉</span>{!sidebarCollapsed && <span>AI 튜터</span>}
+            <button type="button" className={`menu-item ${currentPage === "pdfSummary" ? "active" : ""}`} title="PDF 요약" aria-label="PDF 요약" onClick={() => setCurrentPage("pdfSummary")}>
+              <span className="menu-icon" aria-hidden="true">▧</span>{!sidebarCollapsed && <span>PDF 요약</span>}
             </button>
+          </> : <>
             <button type="button" className={`menu-item ${currentPage === "quiz" ? "active" : ""}`} onClick={loadQuiz}>
               <span className="menu-icon">□</span>{!sidebarCollapsed && <span>문제 풀이</span>}
+            </button>
+            <button type="button" className={`menu-item ${currentPage === "chat" ? "active" : ""}`} onClick={() => setCurrentPage("chat")}>
+              <span className="menu-icon">◉</span>{!sidebarCollapsed && <span>AI 튜터</span>}
             </button>
             <button type="button" className={`menu-item ${currentPage === "weakness" ? "active" : ""}`} onClick={openWeaknessPage}>
               <span className="menu-icon">◇</span>{!sidebarCollapsed && <span>취약점 학습</span>}
@@ -500,16 +506,23 @@ function App() {
        ===================================================== */}
     <main className="main">
       {/* Header */}
-      <header className="header">
+      <header className={`header${currentPage === "learn" ? " learning-header" : ""}`}>
+        <div className="app-header-heading">
         <button type="button" className="header-title header-home-button" onClick={goHome} title="홈으로">
           안양대학교 AI Tutor
         </button>
+        {currentPage === "learn" && <div className="learning-header-title-slot" ref={setLearningTitleTarget} />}
+        </div>
+        <div className="app-header-actions">
+        {currentPage === "learn" && <div className="learning-header-actions-slot" ref={setLearningActionsTarget} />}
         <button type="button" className="theme-toggle" onClick={() => setDarkMode(prev => !prev)} title={darkMode ? "라이트 모드" : "다크 모드"}>
           {darkMode ? "☀" : "☾"}
         </button>
+        </div>
       </header>
+      {currentPage === "pdfSummary" && <PdfSummaryPage />}
       {currentPage === "home" && <div className="study-home"><HomePage onStart={openStudy} /></div>}
-      {currentPage === "learn" && <div className="concept-learning"><LearningPage returnLessonId={learningReturnId} onLessonChange={setLearningReturnId} onPractice={openLessonPractice}
+      {currentPage === "learn" && <div className="concept-learning"><LearningPage headerTitleTarget={learningTitleTarget} headerActionsTarget={learningActionsTarget} returnLessonId={learningReturnId} onLessonChange={setLearningReturnId} onPractice={openLessonPractice}
         tutorChat={{ messages, loading: chatLoading, error: chatError, ready: Boolean(selectedCertId), send: sendMessage }} /></div>}
       {/* =================================================
             AI Tutor

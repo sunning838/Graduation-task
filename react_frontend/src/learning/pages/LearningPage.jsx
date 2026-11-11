@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as api from '../api/lessonClient.js';
 import LessonIndex from '../components/LessonIndex.jsx';
@@ -5,8 +6,7 @@ import LecturePane from '../components/LecturePane.jsx';
 import { DEFAULT_VARIANT } from '../components/lectureVariants.js';
 import TutorPane from '../components/TutorPane.jsx';
 import TutorDrawer from '../components/TutorDrawer.jsx';
-import ProgressBar from '../components/ProgressBar.jsx';
-import { ChevronLeft, ChevronRight, ListIcon, PencilIcon } from '../components/icons.jsx';
+import { ChevronLeft, ChevronRight, ListIcon, PencilIcon, ChatIcon } from '../components/icons.jsx';
 import '../learning-soft.css';
 
 const LEARNER = '내 학습';
@@ -16,7 +16,7 @@ const emptyLecture = () => ({ message: null, error: false, loading: false });
 const cacheKey = lesson => `${lesson.id}:${lesson.version}`;
 
 // tutorChat: 사이드바 'AI 튜터'와 공유하는 대화 (App.jsx에서 전달)
-export default function LearningPage({ returnLessonId, onLessonChange, onPractice, tutorChat }) {
+export default function LearningPage({ returnLessonId, onLessonChange, onPractice, tutorChat, headerTitleTarget, headerActionsTarget }) {
   const [catalog, setCatalog] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
@@ -163,19 +163,15 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
 
   // 단원 목차 화면
   if (!active) return <div className="learning"><div className="learning-main">
-    <h1 className="page-title">정보처리기사 개념 학습</h1>
-    <p className="muted">개념을 이해하고, 문제를 풀며 실력을 확인하세요.</p>
+    {headerTitleTarget ? createPortal(<><span className="learning-header-separator" aria-hidden="true">–</span><h1 className="learning-header-page-title">정보처리기사 개념 학습</h1></>, headerTitleTarget) : <h1 className="page-title">정보처리기사 개념 학습</h1>}
+    {headerActionsTarget && createPortal(<span className="learning-header-progress" aria-label={`학습 진도 ${lessons.length}개 중 ${done}개 완료`}>학습 진도 {done} / {lessons.length} · {percent}%</span>, headerActionsTarget)}
     {progressAlert}
-    <ProgressBar value={done / lessons.length} label={`${percent}% · ${done} / ${lessons.length} 완료`} />
-    <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}>
-      <div className="row three">
-        <button className="btn btn-ghost" onClick={() => saveAndMove(lessons[0])}>처음부터 공부하기</button>
-        <button className="btn btn-ghost" onClick={() => changeLesson(null)}>특정 단원 선택</button>
-        <button className="btn btn-ghost" disabled={!last} onClick={() => saveAndMove(last)}>이어서 공부하기</button>
-      </div>
-    </fieldset>
     <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}>
       <LessonIndex config={catalog.config} cert={CERT} lessons={lessons} states={states} onOpen={saveAndMove} />
+      <div className="learning-index-footer">
+        <button type="button" className="btn btn-ghost" onClick={() => saveAndMove(lessons[0])}>처음부터</button>
+        <button type="button" className="btn btn-ghost" disabled={!last} onClick={() => saveAndMove(last)}>이어서 학습</button>
+      </div>
     </fieldset>
   </div></div>;
 
@@ -192,6 +188,7 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
         </div>
       </div>
       <div className="ls-header-actions">
+        <button className="ls-pill ls-tutor-trigger" type="button" onClick={() => setTutorOpen(true)}><ChatIcon />튜터에게 질문</button>
         <button className="ls-pill" type="button" disabled={saving} onClick={() => onPractice(active)}><PencilIcon />문제 풀기</button>
         <button className="ls-pill" type="button" disabled={saving} onClick={() => changeLesson(null)}><ListIcon />목차</button>
       </div>
@@ -199,7 +196,7 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
 
     {progressAlert}
 
-    <LecturePane message={lecture.message} error={lecture.error} onRetry={loadLecture} onOpenTutor={() => setTutorOpen(true)} />
+    <LecturePane message={lecture.message} error={lecture.error} onRetry={loadLecture} />
 
     <TutorDrawer open={tutorOpen} onClose={() => setTutorOpen(false)}>
       <TutorPane key={active.id} tab={DEFAULT_VARIANT} lessonTitle={active.title} chat={tutorChat} />

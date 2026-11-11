@@ -3,14 +3,13 @@ import PresentationLecture from './PresentationLecture.jsx';
 import { DEFAULT_VARIANT } from './lectureVariants.js';
 
 // 설명 방식은 '기본 설명' 하나만 사용합니다.
-export default function LecturePane({ message, error, onRetry, onOpenTutor }) {
+export default function LecturePane({ message, error, onRetry }) {
   if (message?.text) {
     return <PresentationLecture
       key={`${message.lessonId}:${message.text}`}
       lessonId={message.lessonId}
       variant={DEFAULT_VARIANT}
       message={message}
-      onOpenTutor={onOpenTutor}
     />;
   }
 

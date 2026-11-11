@@ -758,3 +758,19 @@
   .concept-learning .presentation-study-actions { flex-direction: column-reverse; align-items: flex-end; gap: 5px; }
   .concept-learning .presentation-study-actions span { font-size: 9px; white-space: nowrap; }
 }
+
+/* Index actions follow the list; progress is revealed inside each subject. */
+.concept-learning .learning-index-footer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+.concept-learning .learning-index-footer .btn { width: 100%; }
+.concept-learning .subject-progress { margin-bottom: 18px; }
+.concept-learning .subject-progress-count { display: block; margin-bottom: 8px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.concept-learning .subject-progress-segments { display: grid; gap: 4px; width: 100%; }
+.concept-learning .subject-progress-segment { height: 10px; border-radius: 2px; background: var(--surface-2); border: 1px solid var(--line); box-sizing: border-box; }
+.concept-learning .subject-progress-segment.is-complete { background: var(--accent); border-color: var(--accent); }
+@media (max-width: 600px) {
+  .concept-learning .subject-progress-segments { gap: 2px; }
+  .concept-learning .learning-index-footer { gap: 10px; }
+}
+
+
+.concept-learning #learning-index-heading { margin-top: 0; }
