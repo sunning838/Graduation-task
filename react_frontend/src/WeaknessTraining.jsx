@@ -76,14 +76,7 @@ export default function WeaknessTraining({ cert, label, stats, loading, error, o
   return (
     <section className="weakness-page">
       <div className="weakness-page-content">
-        <div className="weakness-page-header">
-          <div>
-            <span className="weakness-page-label">WEAKNESS TRAINING</span>
-            <h1>취약점 집중 학습</h1>
-            <p>실제 풀이 기록을 바탕으로 취약한 과목을 집중적으로 연습합니다.</p>
-          </div>
-          <button type="button" onClick={onRefresh} disabled={loading}>분석 새로고침</button>
-        </div>
+        {!analysis && <div className="card-action-row"><button type="button" onClick={onRefresh} disabled={loading}>분석 새로고침</button></div>}
 
         <StatsStatus loading={loading} error={error} onRetry={onRefresh} />
         {analysis && (
@@ -118,6 +111,7 @@ export default function WeaknessTraining({ cert, label, stats, loading, error, o
                 ))}
                 {!analysis.ranking.length && <p>현재 표시할 취약 과목이 없습니다.</p>}
               </div>
+              <div className="card-action-row"><button type="button" onClick={onRefresh} disabled={loading}>분석 새로고침</button></div>
             </section>
           </div>
         )}

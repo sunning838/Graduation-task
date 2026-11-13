@@ -4720,3 +4720,16 @@ textarea::placeholder {
   .learning-header-study-actions { gap: 8px; }
   .learning-header-progress { font-size: 11px; }
 }
+
+/* Actions stay with the content they operate on. */
+.quiz-card-actions { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 24px; }
+.quiz-utility-row { justify-content: space-between; }
+.card-action-row { display: flex; justify-content: flex-end; margin-top: 20px; }
+.weakness-ranking-panel .card-action-row { margin-top: auto; padding-top: 20px; }
+.wrongnote-section-heading { flex-wrap: wrap; gap: 16px; }
+.wrongnote-section-heading .wrongnote-header-actions { flex-wrap: wrap; }
+
+.weakness-ranking-panel { display: flex; flex-direction: column; }
+.card-action-row button { padding: 10px 16px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text-main); font: inherit; cursor: pointer; }
+.card-action-row button:disabled { opacity: .5; cursor: default; }
+.card-action-row button:focus-visible { outline: 2px solid #77b8c2; outline-offset: 3px; }

@@ -177,6 +177,7 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
 
   // 단원 학습 화면
   return <div className="learning is-presenting"><div className="learning-main ls-lesson">
+    {headerTitleTarget && createPortal(<><span className="learning-header-separator" aria-hidden="true">–</span><h1 className="learning-header-page-title">정보처리기사 개념 학습</h1></>, headerTitleTarget)}
     <header className="ls-header">
       <div className="ls-title">
         <div className="ls-ring" style={{ '--ls-progress': `${percent}%` }} role="img" aria-label={`학습 진도 ${percent}%`}>

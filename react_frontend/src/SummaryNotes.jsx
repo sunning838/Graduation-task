@@ -25,20 +25,18 @@ export function SummaryContent({ label, data, loading, error, busy, onReload, on
     notes.find(note => selectedItem && note.label === selectedItem.label) ||
     null;
 
-  return <section className="wrongnote-page"><div className="wrongnote-content">
-    <div className="wrongnote-header">
-      <div><span className="wrongnote-page-label">CONCEPT SUMMARY</span><h1>취약점 개념 요약</h1>
-        <p>풀이 기록에서 확인된 취약 과목의 핵심 개념을 정리합니다.</p></div>
-      <div className="wrongnote-header-actions">
+  const actions = (<div className="wrongnote-header-actions">
         <button type="button" className="wrongnote-download-button" disabled={!notes.length} onClick={onDownload}>요약 다운로드</button>
         <button type="button" className="wrongnote-download-button" disabled={loading || generating} onClick={onReload}>다시 조회</button>
-      </div>
-    </div>
+      </div>);
+
+  return <section className="wrongnote-page"><div className="wrongnote-content">
+    {!data && actions}
     {loading && <p role="status">저장된 요약과 학습 기록을 불러오고 있습니다.</p>}
     {error && <p role="alert">{error}</p>}
     {data && <>
       <section className="wrongnote-focus-section">
-        <div className="wrongnote-section-heading"><h2>현재 취약 과목</h2><span className="wrongnote-cert-chip">{label}</span></div>
+        <div className="wrongnote-section-heading"><h2>현재 취약 과목</h2>{actions}</div>
         <p>{data.weakness.message}</p>
         <p>과목별 {data.weakness.min_attempts}문제 이상 · 정답률 {data.weakness.accuracy_threshold}% 미만 기준</p>
         <div className="wrongnote-top-grid">{ranking.map((item, index) =>

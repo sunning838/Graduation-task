@@ -385,10 +385,6 @@ function App() {
     setActiveArea("practice");
     void loadQuiz(lesson);
   };
-  const openStudyChat = () => {
-    setActiveArea("study");
-    setCurrentPage("studyChat");
-  };
   const openProfile = () => {
     if (currentPage === "profile") return;
     setProfileReturnPage(currentPage);
@@ -438,6 +434,8 @@ function App() {
       ),
     ].slice(0, 3);
   })();
+  const pageTitle = { quiz: "문제풀이", chat: "AI 튜터", studyChat: "AI 튜터", weakness: "취약점 학습", summary: "취약점 개념 요약", mockexam: `${selectedCert} 모의고사`, pdfSummary: "PDF 요약" }[currentPage];
+  const newQuizButton = <button type="button" className="quiz-new-button" onClick={() => loadQuiz(lessonPractice)} disabled={quizLoading || quizSubmitting || (!lessonPractice && !selectedCertId)}>새 문제</button>;
   return <div className={`app ${darkMode ? "dark" : "light"} ${currentPage === "home" ? "home-layout" : ""}`}>
     {/* =====================================================
           Sidebar
@@ -458,9 +456,6 @@ function App() {
           {studyMode ? <>
             <button type="button" className={`menu-item ${currentPage === "learn" ? "active" : ""}`} onClick={openStudy}>
               <span className="menu-icon">▤</span>{!sidebarCollapsed && <span>개념 학습</span>}
-            </button>
-            <button type="button" className={`menu-item ${currentPage === "studyChat" ? "active" : ""}`} onClick={openStudyChat}>
-              <span className="menu-icon">◉</span>{!sidebarCollapsed && <span>AI 튜터</span>}
             </button>
             <button type="button" className={`menu-item ${currentPage === "pdfSummary" ? "active" : ""}`} title="PDF 요약" aria-label="PDF 요약" onClick={() => setCurrentPage("pdfSummary")}>
               <span className="menu-icon" aria-hidden="true">▧</span>{!sidebarCollapsed && <span>PDF 요약</span>}
@@ -506,12 +501,13 @@ function App() {
        ===================================================== */}
     <main className="main">
       {/* Header */}
-      <header className={`header${currentPage === "learn" ? " learning-header" : ""}`}>
+      <header className={`header${(currentPage === "learn" || pageTitle) ? " learning-header" : ""}`}>
         <div className="app-header-heading">
         <button type="button" className="header-title header-home-button" onClick={goHome} title="홈으로">
           안양대학교 AI Tutor
         </button>
         {currentPage === "learn" && <div className="learning-header-title-slot" ref={setLearningTitleTarget} />}
+        {pageTitle && <div className="learning-header-title-slot"><span className="learning-header-separator" aria-hidden="true">–</span><h1 className="learning-header-page-title">{pageTitle}</h1></div>}
         </div>
         <div className="app-header-actions">
         {currentPage === "learn" && <div className="learning-header-actions-slot" ref={setLearningActionsTarget} />}
@@ -632,17 +628,10 @@ function App() {
             문제 풀이
          ================================================= */}
       {currentPage === "quiz" && <section className="quiz-page">
-        <div className="quiz-header">
-          <div>
-            <span className="quiz-page-label">PRACTICE</span>
-            <h1>문제 풀이</h1>
-            <p>{lessonPractice ? `${lessonPractice.title} · 학습한 단원의 자료를 바탕으로 만든 문제입니다.` : 'AI가 기출 데이터를 분석해 만든 변형 문제입니다.'}</p>
-            {lessonPractice && <button type="button" className="quiz-new-button" onClick={openStudy}>학습하던 단원으로 돌아가기</button>}
-          </div>
-          <button type="button" className="quiz-new-button" onClick={() => loadQuiz(lessonPractice)} disabled={quizLoading || quizSubmitting || (!lessonPractice && !selectedCertId)}>
-            새 문제
-          </button>
-        </div>
+        {(lessonPractice || !quiz || quizLoading) && <div className="quiz-header quiz-utility-row">
+          {lessonPractice && <button type="button" className="quiz-new-button" onClick={openStudy}>학습하던 단원으로 돌아가기</button>}
+          {(!quiz || quizLoading) && newQuizButton}
+        </div>}
         {quizLoading && <div className="quiz-loading">
           <div className="quiz-loading-spinner" />
           <h3>AI가 문제를 생성하고 검토하고 있습니다.</h3>
@@ -689,11 +678,14 @@ function App() {
                 </button>;
               })}
             </div>
-            {!quizResult && <div className="quiz-submit-area">
+            <div className="quiz-card-actions">
+              {newQuizButton}
+              {!quizResult && <>
               <button type="button" className="quiz-submit-button" disabled={selectedAnswer === null || quizSubmitting} onClick={submitQuiz}>
                 {quizSubmitting ? "채점 중…" : "정답 제출"}
               </button>
-            </div>}
+              </>}
+            </div>
             {quizResult && <div className="quiz-inline-result">
               <div className={`quiz-result-title ${quizResult.is_correct ? "success" : "wrong"}`}>
                 {quizResult.is_correct ? "정답입니다!" : "오답입니다."}

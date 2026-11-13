@@ -158,7 +158,6 @@ export default function MockExam({ cert, label, onSubmitted, onWeakness }) {
   const submitted = exam?.status === 'submitted';
   const unanswered = exam?.items.filter(q => q.selected_answer == null).length || 0;
   return <section className="mock-page"><div className="mock-content bank-exam">
-    <h1>{label} 모의고사</h1>
     {error && <div role="alert"><p>{error}</p>{!busy && <button onClick={() => { setLoading(true); setReload(n => n + 1); }}>서버 상태 다시 확인</button>}
       {!bank && !busy && !loading && <button onClick={reset}>저장된 시험 연결 해제</button>}</div>}
     {loading ? <p role="status">시험 정보를 불러오는 중…</p> : !bank ? <button onClick={() => { setLoading(true); setReload(n => n + 1); }}>다시 불러오기</button> : preparation ? <PreparationProgress preparation={preparation} /> : !exam ? <>
