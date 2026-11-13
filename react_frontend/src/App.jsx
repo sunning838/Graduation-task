@@ -516,7 +516,8 @@ function App() {
         </button>
         </div>
       </header>
-      {currentPage === "pdfSummary" && <PdfSummaryPage />}
+           {currentPage === "pdfSummary" && <div className="concept-learning pdf-host"><PdfSummaryPage answerLength={answerLength} onAnswerLengthChange={setAnswerLength}
+        tutorChat={{ messages, loading: chatLoading, error: chatError, ready: Boolean(selectedCertId), send: sendMessage }} /></div>}
       {currentPage === "home" && <div className="study-home"><HomePage onStart={openStudy} /></div>}
       {currentPage === "learn" && <div className="concept-learning"><LearningPage headerTitleTarget={learningTitleTarget} headerActionsTarget={learningActionsTarget} returnLessonId={learningReturnId} onLessonChange={setLearningReturnId} onPractice={openLessonPractice}
         tutorChat={{ messages, loading: chatLoading, error: chatError, ready: Boolean(selectedCertId), send: sendMessage }} /></div>}

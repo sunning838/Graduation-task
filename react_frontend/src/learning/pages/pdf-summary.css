@@ -21,8 +21,81 @@
 .pdf-summary-description p, .pdf-mock-result p, .pdf-mock-result li { line-height: 1.8; font-size: 14px; }
 .pdf-summary-description .pdf-demo-notice { color: var(--text-muted); font-size: 12px; }
 .pdf-extract-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+/* 답변 길이: 올리기 상자 바로 아래 왼쪽 */
+.pdf-options { display: flex; justify-content: flex-start; margin-top: 16px; }
+.pdf-options .ps-length { height: 44px; padding: 4px; border-radius: 22px; }
+.concept-learning .pdf-options .ps-length button { height: 36px; padding: 0 14px; border-radius: 18px; }
 .pdf-mock-result { margin-top: 28px; padding: 28px; border: 1px solid var(--border); border-radius: 16px; background: var(--bg-sidebar); }
 .pdf-mock-result h2 { margin-top: 18px; }
 .pdf-mock-result h3 { font-size: 15px; }
 .pdf-error { color: #e16666; font-size: 13px; }
 @media (max-width: 600px) { .pdf-summary-page { padding: 24px 16px 40px; } .pdf-dropzone { padding: 28px 16px; min-height: 280px; } }
+
+/* =========================================================
+   PDF 요약 - 결과 화면 (원문 + 요약 1:1)
+   학습실과 같은 둥근 카드(ls-card, ls-pill, ls-round)를 사용합니다.
+========================================================= */
+.pdf-summary-page.is-result { display: flex; flex-direction: column; padding-top: 12px; padding-bottom: 28px; }
+.ps-result { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 1480px; margin: 0 auto; letter-spacing: -.01em; }
+
+/* 상단: 파일 이름 + 튜터에게 질문/이전으로 */
+.ps-result-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ps-file { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.concept-learning .ps-back { flex: 0 0 auto; padding: 0 16px 0 10px; }
+.ps-file h2 { margin: 0; font-size: clamp(19px, 1.7vw, 24px); font-weight: 700; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.ps-file span { font-size: 12px; color: var(--text-muted); }
+.ps-file-icon { flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: center; width: 40px; height: 48px; padding-bottom: 7px; box-sizing: border-box; border-radius: 9px; background: #f2f2f2; color: #d93f45; font-size: 10px; font-weight: 800; }
+.ps-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ps-length { display: inline-flex; align-items: center; gap: 2px; height: 38px; padding: 3px; box-sizing: border-box; border-radius: 19px; background: var(--ls-tint); }
+.ps-length-label { padding: 0 8px 0 10px; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+/* 세 버튼 모두 같은 글씨 크기·굵기 (선택된 것은 색만 다름) */
+.concept-learning .ps-length button { height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 600; line-height: 1; cursor: pointer; }
+.concept-learning .ps-length button:hover:not(.is-active) { color: var(--text-main); }
+.concept-learning .ps-length button.is-active { background: var(--send-bg); color: var(--send-text); }
+
+/* 1:1 카드 */
+.ps-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; height: clamp(460px, calc(100dvh - 230px), 860px); }
+.ps-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ps-card-head h3 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+
+/* 원문 보기 */
+.ps-viewer { display: flex; flex-direction: column; gap: 14px; padding: 20px; min-height: 0; overflow: hidden; }
+.ps-zoom { display: flex; align-items: center; gap: 6px; }
+.ps-zoom .ls-round { width: 34px; height: 34px; font-size: 18px; }
+.concept-learning .ps-zoom-value { min-width: 58px; height: 34px; padding: 0 10px; border: 0; border-radius: 17px; background: var(--ls-tint); color: var(--text-main); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+.ps-stage { position: relative; flex: 1; min-height: 0; display: flex; overflow: auto; padding: 24px; border-radius: 16px; background: color-mix(in srgb, #000 35%, var(--bg-main)); outline: none; scrollbar-width: thin; }
+.ps-stage:focus-visible { box-shadow: inset 0 0 0 2px #77b8c2; }
+.ps-canvas { display: block; margin: auto; flex: 0 0 auto; border-radius: 4px; background: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); transition: opacity .15s; }
+.ps-canvas.is-rendering { opacity: .85; }
+.ps-stage-note { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted); text-align: center; }
+.ps-stage-note p { margin: 0; }
+.ps-page-nav { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.ps-page-input { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.concept-learning .ps-page-input input { width: 46px; height: 32px; padding: 0 6px; border: 0; border-radius: 10px; background: var(--ls-tint); color: var(--text-main); font-size: 13px; text-align: center; -moz-appearance: textfield; }
+.ps-page-input input::-webkit-outer-spin-button, .ps-page-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* 요약 */
+.ps-summary { display: flex; flex-direction: column; gap: 12px; padding: 20px 14px 14px; min-height: 0; overflow: hidden; }
+.ps-summary .ps-card-head { padding: 0 10px; }
+.ps-summary-scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px; scrollbar-width: thin; }
+.ps-lines { margin: 0 8px 8px; padding: 14px 16px; border-radius: 16px; background: var(--ls-tint); }
+.ps-lines > span { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.ps-lines ol { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.8; word-break: keep-all; }
+.concept-learning .ps-section { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 10px 14px; border: 0; border-radius: 14px; background: transparent; color: var(--text-main); text-align: left; cursor: pointer; transition: background .15s; }
+.ps-section:hover { background: var(--ls-tint); }
+.ps-section.is-current { background: color-mix(in srgb, #3b9cff 14%, transparent); }
+.ps-section strong { font-size: 14px; }
+.ps-section small { font-weight: 500; color: var(--text-muted); font-size: 12px; }
+.ps-section span { font-size: 14px; line-height: 1.8; color: var(--text-secondary); word-break: keep-all; }
+
+@media (max-width: 900px) {
+  .ps-grid { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .ps-viewer { height: 560px; }
+  .ps-summary { max-height: 520px; }
+}
+
+/* App.jsx에서 PDF 화면을 감싸는 상자: 튜터 창(학습실과 같은 모양)을 쓰려고 concept-learning 안에 둡니다. */
+.concept-learning.pdf-host { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+/* concept-learning 안의 button { font: inherit } 규칙이 올리기 화면 버튼 글씨를 덮지 않도록 */
+.concept-learning.pdf-host .pdf-select-button { font-weight: 600; }
+.concept-learning.pdf-host .pdf-file-selection button { font-size: 24px; line-height: 1; }

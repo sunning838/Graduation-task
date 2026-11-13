@@ -3,7 +3,8 @@ import ChatMessage from './ChatMessage.jsx';
 
 // 대화는 사이드바 'AI 튜터'와 같은 대화입니다.
 // chat: App.jsx에서 내려주는 { messages, loading, error, ready, send(text, context) }
-export default function TutorPane({ tab, lessonTitle, chat }) {
+// info: 안내 줄에 보여줄 문구, context: 질문과 함께 서버에만 보내는 정보 (없으면 개념 학습 기준)
+export default function TutorPane({ tab, lessonTitle, chat, info, context }) {
   const [question, setQuestion] = useState('');
   const [lastQuestion, setLastQuestion] = useState('');
   const boxRef = useRef(null);
@@ -18,7 +19,7 @@ export default function TutorPane({ tab, lessonTitle, chat }) {
 
   const ask = async text => {
     setLastQuestion(text);
-    const ok = await chat.send(text, `[개념 학습 중인 단원: ${lessonTitle}]`);
+    const ok = await chat.send(text, context ?? `[개념 학습 중인 단원: ${lessonTitle}]`);
     if (ok) setLastQuestion('');
     return ok;
   };
@@ -37,7 +38,7 @@ export default function TutorPane({ tab, lessonTitle, chat }) {
 
       {/* 왼쪽 탭 줄과 같은 높이로 맞춘 안내 줄 */}
       <div className="tutor-head">
-        <span className="muted small">현재 보고 있는 설명: {tab}</span>
+        <span className="muted small">{info ?? `현재 보고 있는 설명: ${tab}`}</span>
       </div>
 
       <div className="pane-scroll tutor-box">
