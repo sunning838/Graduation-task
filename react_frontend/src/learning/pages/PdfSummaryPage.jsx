@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import PdfResult from '../components/PdfResult.jsx';
+import { summarizePdf } from '../api/api.js';
 import '../learning-soft.css';
 import './pdf-summary.css';
 
@@ -11,7 +12,7 @@ const LENGTHS = [
 ];
 
 function PdfIcon() {
-  return <svg viewBox="0 0 64 72" fill="none" aria-hidden="true"><path d="M12 3h27l15 15v51H12zM39 3v16h15M22 31h22M22 39h22M22 47h14" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"/><rect x="3" y="52" width="39" height="17" rx="4" fill="currentColor"/><text x="22" y="64" textAnchor="middle" fill="var(--bg-main)" fontSize="11" fontWeight="700">PDF</text></svg>;
+  return <svg viewBox="0 0 64 72" fill="none" aria-hidden="true"><path d="M12 3h27l15 15v51H12zM39 3v16h15M22 31h22M22 39h22M22 47h14" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /><rect x="3" y="52" width="39" height="17" rx="4" fill="currentColor" /><text x="22" y="64" textAnchor="middle" fill="var(--bg-main)" fontSize="11" fontWeight="700">PDF</text></svg>;
 }
 
 // tutorChat / answerLength / onAnswerLengthChange: App.jsx의 AI 튜터 대화와 답변 길이
@@ -21,21 +22,57 @@ export default function PdfSummaryPage({ tutorChat, answerLength, onAnswerLength
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
   const [result, setResult] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [loading, setLoading] = useState(false);
   const selectFile = files => {
     setDragging(false);
     if (!files?.length) return;
     setResult(false);
+    setSummary('');
     if (files.length !== 1 || !/\.pdf$/i.test(files[0].name)) {
       setFile(null); setError('PDF 파일 한 개를 선택해 주세요.'); return;
     }
     if (!files[0].size) { setFile(null); setError('비어 있는 파일입니다. 다른 PDF를 선택해 주세요.'); return; }
     setFile(files[0]); setError('');
   };
-  const reset = () => { setFile(null); setResult(false); setError(''); if (inputRef.current) inputRef.current.value = ''; };
+  const reset = () => {
+    setFile(null);
+    setResult(false);
+    setSummary('');
+    setError('');
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  };
+
+  const extractSummary = async () => {
+    if (!file || loading) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const data = await summarizePdf(
+        file,
+        answerLength
+      );
+
+      setSummary(data.summary);
+      setResult(true);
+    } catch (err) {
+      setError(
+        err.message ||
+        'PDF 요약을 생성하지 못했습니다.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 추출하기를 누르면: 원문 + 요약 화면 (이전으로 누르면 올리기 화면, 고른 파일은 유지)
   if (result && file) return <section className="pdf-summary-page is-result" aria-label="PDF 요약">
-    <PdfResult file={file} onBack={() => setResult(false)} tutorChat={tutorChat} />
+    <PdfResult file={file} summary={summary} onBack={() => setResult(false)} tutorChat={tutorChat} />
   </section>;
 
   // 처음 화면: PDF 올리기
@@ -45,7 +82,14 @@ export default function PdfSummaryPage({ tutorChat, answerLength, onAnswerLength
       <div className={`pdf-dropzone${dragging ? ' is-dragging' : ''}`} onDragOver={event => { event.preventDefault(); setDragging(true); }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }} onDrop={event => { event.preventDefault(); selectFile(event.dataTransfer.files); }}>
         <PdfIcon />
         <input ref={inputRef} type="file" accept=".pdf,application/pdf" hidden aria-label="PDF 파일 선택" onChange={event => { selectFile(event.target.files); event.target.value = ''; }} />
-        <button type="button" className="pdf-select-button" onClick={() => inputRef.current?.click()}>{file ? '다른 파일 선택' : '파일 선택'}<span aria-hidden="true">＋</span></button>
+        <button
+          type="button"
+          className="pdf-select-button"
+          onClick={() => inputRef.current?.click()}
+        >
+          {file ? '다른 파일 선택' : '파일 선택'}
+          <span aria-hidden="true">＋</span>
+        </button>
         <p className="pdf-drop-hint">또는 PDF 파일을 여기에 끌어 놓으세요</p>
         {file && <div className="pdf-file-selection"><div><strong>{file.name}</strong><span>{(file.size / 1024 / 1024).toFixed(2)} MB · PDF</span></div><button type="button" onClick={reset} aria-label="선택한 파일 제거" title="파일 제거">×</button></div>}
       </div>
@@ -58,8 +102,18 @@ export default function PdfSummaryPage({ tutorChat, answerLength, onAnswerLength
             className={answerLength === item.id ? 'is-active' : ''} onClick={() => onAnswerLengthChange?.(item.id)}>{item.label}</button>)}
         </div>
       </div>
-      <div className="pdf-summary-description"><h2>PDF를 요약해 드립니다.</h2><p>강의 자료의 텍스트와 핵심 개념을 추출하고, 복습하기 좋은 요약으로 정리합니다.</p><p className="pdf-demo-notice">현재는 목업 화면입니다. 원문은 내 컴퓨터에서만 열어 보여주고 서버로 보내지 않으며, 요약은 고정된 예시가 표시됩니다.</p></div>
-      <div className="pdf-extract-actions"><button type="button" className="pdf-select-button" disabled={!file} onClick={() => setResult(true)}>추출하기</button></div>
+      <div className="pdf-summary-description"><h2>PDF를 요약해 드립니다.</h2><p>강의 자료의 텍스트와 핵심 개념을 추출하고, 복습하기 좋은 요약으로 정리합니다.</p><p className="pdf-demo-notice">현재 프로토타입은 텍스트가 포함된 PDF의 개념 요약을 지원합니다.
+        스캔 이미지 PDF는 아직 지원하지 않습니다.</p></div>
+      <div className="pdf-extract-actions">
+        <button
+          type="button"
+          className="pdf-select-button"
+          disabled={!file || loading}
+          onClick={extractSummary}
+        >
+          {loading ? '개념 요약 생성 중…' : '추출하기'}
+        </button>
+      </div>
     </div>
   </section>;
 }

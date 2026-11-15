@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,6 +17,7 @@ from backend.cert_config import CERT_CONFIG
 from backend.db_manager import DB_PATH
 from backend.learning_stats import learning_stats
 from backend.summary_notes import summary_view, generate_summaries
+from backend.pdf_summary import generate_pdf_summary
 from backend import mock_exams
 from backend import mock_preparation
 from backend import socratic
@@ -353,3 +354,53 @@ app.include_router(learning_router)
 
 from backend.presentation_routes import router as presentation_router
 app.include_router(presentation_router)
+
+@app.post('/api/pdf-summary')
+async def pdf_summary(
+    file: UploadFile = File(...),
+    answer_length: Literal[
+        'short',
+        'medium',
+        'long'
+    ] = Form('medium'),
+):
+    filename = file.filename or "document.pdf"
+
+    if not filename.lower().endswith(".pdf"):
+        fail(
+            422,
+            "INVALID_PDF",
+            "PDF 파일만 업로드할 수 있습니다."
+        )
+
+    try:
+        pdf_bytes = await file.read()
+
+        return generate_pdf_summary(
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            answer_length=answer_length,
+            engine_factory=get_engine,
+        )
+
+    except ValueError as exc:
+        fail(
+            422,
+            "PDF_SUMMARY_FAILED",
+            str(exc)
+        )
+
+    except Exception:
+        LOG.exception(
+            "PDF summary generation failed"
+        )
+
+        fail(
+            502,
+            "PDF_SUMMARY_FAILED",
+            "PDF 개념 요약을 생성하지 못했습니다. 다시 시도해 주세요.",
+            True
+        )
+
+    finally:
+        await file.close()

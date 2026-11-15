@@ -161,3 +161,45 @@ export async function createAudioLecture(lessonId, variant, text) {
     body: { lesson_id: lessonId, variant, text },
   });
 }
+
+export async function summarizePdf(
+  file,
+  answerLength = 'medium'
+) {
+  const formData = new FormData();
+
+  formData.append('file', file);
+  formData.append(
+    'answer_length',
+    answerLength
+  );
+
+  let response;
+
+  try {
+    response = await fetch(
+      `${BASE_URL}/api/pdf-summary`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+  } catch {
+    throw new Error(
+      '서버에 연결하지 못했습니다. 백엔드 실행 상태를 확인해 주세요.'
+    );
+  }
+
+  const data = await response
+    .json()
+    .catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.detail?.message ||
+      'PDF 개념 요약을 생성하지 못했습니다.'
+    );
+  }
+
+  return data;
+}

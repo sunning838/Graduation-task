@@ -4,6 +4,8 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import TutorDrawer from './TutorDrawer.jsx';
 import TutorPane from './TutorPane.jsx';
 import { ChatIcon, ChevronLeft, ChevronRight } from './icons.jsx';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -13,18 +15,7 @@ const MAX_ZOOM = 3;
 
 // 백엔드 연결 전까지 보여줄 예시 요약입니다. (실제 파일 내용 아님)
 // page: 이 항목을 누르면 원문에서 이동할 쪽
-const MOCK_SUMMARY = {
-  lines: [
-    '소프트웨어 개발은 요구사항 분석, 설계, 구현, 테스트, 유지보수 단계로 이루어진다.',
-    '각 단계의 결과물은 다음 단계의 입력이 된다.',
-    '유지보수는 개발 이후 가장 오래 걸리고 비용이 큰 단계다.',
-  ],
-  sections: [
-    { title: '요구사항 분석', page: 1, text: '사용자의 요구와 시스템의 범위를 정리합니다.' },
-    { title: '설계·구현', page: 2, text: '시스템 구조를 설계하고 프로그램으로 구현합니다.' },
-    { title: '테스트·유지보수', page: 3, text: '오류를 확인하고, 운영 중 생기는 변경 사항을 반영합니다.' },
-  ],
-};
+
 
 const clampZoom = value => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value * 100) / 100));
 // 지금 배율에서 10% 단위로 한 칸 이동 (예: 맞춤 114% → 확대 120%, 축소 110%)
@@ -40,7 +31,7 @@ function PdfBadge() {
 
 // file: 사용자가 고른 PDF(File), tutorChat: App.jsx의 AI 튜터 대화
 // onBack: 올리기 화면으로 돌아가기 (고른 파일은 그대로 남음)
-export default function PdfResult({ file, onBack, tutorChat }) {
+export default function PdfResult({ file, summary, onBack, tutorChat }) {
   const [doc, setDoc] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [page, setPage] = useState(1);
@@ -58,7 +49,6 @@ export default function PdfResult({ file, onBack, tutorChat }) {
   useEffect(() => {
     let cancelled = false;
     let loadingTask = null; // PDF를 닫을 때는 이 작업(loadingTask)을 destroy 합니다.
-    setDoc(null); setLoadError(''); setPage(1); setZoom(null);
     file.arrayBuffer().then(buffer => {
       if (cancelled) return null;
       loadingTask = pdfjsLib.getDocument({ data: buffer });
@@ -75,7 +65,7 @@ export default function PdfResult({ file, onBack, tutorChat }) {
       cancelled = true;
       // 화면을 떠날 때 PDF 정리 (실패해도 화면이 꺼지지 않도록 감쌈)
       try { renderTask.current?.cancel(); } catch { /* 무시 */ }
-      try { Promise.resolve(loadingTask?.destroy?.()).catch(() => {}); } catch { /* 무시 */ }
+      try { Promise.resolve(loadingTask?.destroy?.()).catch(() => { }); } catch { /* 무시 */ }
     };
   }, [file]);
 
@@ -162,7 +152,7 @@ export default function PdfResult({ file, onBack, tutorChat }) {
         <PdfBadge />
         <div>
           <h2>{file.name}</h2>
-          <span>{pageCount ? `${pageCount}쪽 · ` : ''}{sizeLabel} · 예시 요약</span>
+          <span>{pageCount ? `${pageCount}쪽 · ` : ''}{sizeLabel} · AI 개념 요약</span>
         </div>
       </div>
       <div className="ps-head-actions">
@@ -205,25 +195,23 @@ export default function PdfResult({ file, onBack, tutorChat }) {
         </div>
       </section>
 
-      <section className="ls-card ps-summary" aria-label="요약">
+      <section
+        className="ls-card ps-summary"
+        aria-label="요약"
+      >
         <div className="ps-card-head">
-          <h3>요약</h3>
-          <span className="pdf-demo-badge">예시 · 실제 파일 내용 아님</span>
+          <h3>개념 요약</h3>
+          <span className="pdf-demo-badge">
+            AI 요약
+          </span>
         </div>
+
         <div className="ps-summary-scroll">
-          <div className="ps-lines">
-            <span>세 줄 요약</span>
-            <ol>{MOCK_SUMMARY.lines.map(line => <li key={line}>{line}</li>)}</ol>
+          <div className="summary-markdown">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {summary}
+            </ReactMarkdown>
           </div>
-          {MOCK_SUMMARY.sections.map(section => {
-            const target = Math.min(section.page, pageCount || section.page);
-            const current = target === page;
-            return <button key={section.title} type="button" className={`ps-section${current ? ' is-current' : ''}`}
-              aria-current={current ? 'true' : undefined} onClick={() => goPage(target)}>
-              <strong>{section.title} <small>· {target}쪽</small></strong>
-              <span>{section.text}</span>
-            </button>;
-          })}
         </div>
       </section>
     </div>
