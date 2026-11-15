@@ -29,7 +29,7 @@ function PdfBadge() {
   return <span className="ps-file-icon" aria-hidden="true">PDF</span>;
 }
 
-// file: 사용자가 고른 PDF(File), tutorChat: App.jsx의 AI 튜터 대화
+// file: 원문 PDF, tutorChat: 이 문서의 질문과 답변
 // onBack: 올리기 화면으로 돌아가기 (고른 파일은 그대로 남음)
 export default function PdfResult({ file, summary, onBack, tutorChat }) {
   const [doc, setDoc] = useState(null);
@@ -73,6 +73,7 @@ export default function PdfResult({ file, summary, onBack, tutorChat }) {
   const measureFit = useCallback(async () => {
     if (!doc || !stageRef.current) return;
     const pdfPage = await doc.getPage(page);
+    if (!stageRef.current || !stageRef.current.clientWidth || !stageRef.current.clientHeight) return;
     const base = pdfPage.getViewport({ scale: 1 });
     const width = stageRef.current.clientWidth - 48;
     const height = stageRef.current.clientHeight - 48;
@@ -217,9 +218,7 @@ export default function PdfResult({ file, summary, onBack, tutorChat }) {
     </div>
 
     <TutorDrawer open={tutorOpen} onClose={() => setTutorOpen(false)} heading="자료를 보다가 궁금한 점을 질문해 보세요.">
-      <TutorPane key={file.name} chat={tutorChat}
-        info={`보고 있는 자료: ${file.name}`}
-        context={`[PDF 요약 중인 자료: ${file.name}]`} />
+      <TutorPane chat={tutorChat} info={`보고 있는 자료: ${file.name}`} />
     </TutorDrawer>
   </section>;
 }

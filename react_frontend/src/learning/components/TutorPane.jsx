@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import ChatMessage from './ChatMessage.jsx';
 
-// 대화는 사이드바 'AI 튜터'와 같은 대화입니다.
-// chat: App.jsx에서 내려주는 { messages, loading, error, ready, send(text, context) }
+// chat: 현재 화면에 연결된 대화 { messages, loading, error, ready, send(text, context) }
 // info: 안내 줄에 보여줄 문구, context: 질문과 함께 서버에만 보내는 정보 (없으면 개념 학습 기준)
 export default function TutorPane({ tab, lessonTitle, chat, info, context }) {
   const [question, setQuestion] = useState('');
@@ -48,7 +47,7 @@ export default function TutorPane({ tab, lessonTitle, chat, info, context }) {
             <p className="muted">직접 입력한 질문과 튜터의 답변이 여기에 쌓입니다.</p>
           )}
           {messages.map(m => (
-            <ChatMessage key={m.id} message={{ role: m.role, text: m.content }} />
+            <ChatMessage key={m.id} message={{ role: m.role, text: m.content, research: m.research }} />
           ))}
           {loading && <p className="muted">답변을 준비하고 있어요…</p>}
           {chat?.error && !loading && (

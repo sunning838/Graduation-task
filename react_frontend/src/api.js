@@ -3,12 +3,13 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:800
 export const apiUrl = path => `${API_BASE_URL}${path}`;
 
 export async function apiRequest(path, { body, signal, method } = {}) {
+  const isForm = body instanceof FormData;
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method: method || (body === undefined ? "GET" : "POST"),
-      headers: body === undefined ? {} : { "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: isForm || body === undefined ? {} : { "Content-Type": "application/json" },
+      body: isForm || body === undefined ? body : JSON.stringify(body),
       signal,
     });
   } catch (error) {

@@ -17,7 +17,7 @@ from backend.cert_config import CERT_CONFIG
 from backend.db_manager import DB_PATH
 from backend.learning_stats import learning_stats
 from backend.summary_notes import summary_view, generate_summaries
-from backend.pdf_summary import generate_pdf_summary
+from backend.pdf_summary import MAX_FILE_SIZE, PdfTutorRequest, answer_pdf_question, generate_pdf_summary, pdf_tutor_model
 from backend import mock_exams
 from backend import mock_preparation
 from backend import socratic
@@ -356,7 +356,7 @@ from backend.presentation_routes import router as presentation_router
 app.include_router(presentation_router)
 
 @app.post('/api/pdf-summary')
-async def pdf_summary(
+def pdf_summary(
     file: UploadFile = File(...),
     answer_length: Literal[
         'short',
@@ -374,7 +374,7 @@ async def pdf_summary(
         )
 
     try:
-        pdf_bytes = await file.read()
+        pdf_bytes = file.file.read(MAX_FILE_SIZE + 1)
 
         return generate_pdf_summary(
             pdf_bytes=pdf_bytes,
@@ -403,4 +403,13 @@ async def pdf_summary(
         )
 
     finally:
-        await file.close()
+        file.file.close()
+
+
+@app.post('/api/pdf-summary/question')
+def pdf_question(request: PdfTutorRequest):
+    try:
+        return answer_pdf_question(request, pdf_tutor_model)
+    except Exception:
+        LOG.exception("PDF tutor failed")
+        fail(502, "PDF_TUTOR_FAILED", "PDF 답변을 준비하지 못했습니다. 다시 시도해 주세요.", True)

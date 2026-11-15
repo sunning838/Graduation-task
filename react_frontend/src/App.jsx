@@ -52,6 +52,7 @@ function App() {
   // 개념학습실 / 문제풀이실은 프로필 진입 여부와 별개로 유지합니다.
   const [activeArea, setActiveArea] = useState("study");
   const [profileReturnPage, setProfileReturnPage] = useState("learn");
+  const [hasOpenedPdf, setHasOpenedPdf] = useState(false);
   const [learningTitleTarget, setLearningTitleTarget] = useState(null);
   const [learningActionsTarget, setLearningActionsTarget] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
@@ -63,12 +64,10 @@ function App() {
   const [conversationId, setConversationId] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
-  const [quizSubmitting, setQuizSubmitting] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetNotice, setResetNotice] = useState("");
   const chatRequest = useRef(null);
-  const quizRequest = useRef(null);
-  const submitRequest = useRef(null);
+  const practiceRequests = useRef(new Map());
   const socraticRequest = useRef(null);
   const selectedCertId = certifications.find(cert => cert.label === selectedCert)?.id;
 
@@ -85,11 +84,14 @@ function App() {
     return () => controller.abort();
   }, [certReload]);
 
-  useEffect(() => () => {
-    chatRequest.current?.abort();
-    quizRequest.current?.abort();
-    submitRequest.current?.abort();
-    socraticRequest.current?.abort();
+  useEffect(() => {
+    const requests = practiceRequests.current;
+    return () => {
+      chatRequest.current?.abort();
+      for (const controller of requests.values()) controller.abort();
+      requests.clear();
+      socraticRequest.current?.abort();
+    };
   }, []);
 
   // =========================================================
@@ -115,13 +117,19 @@ function App() {
   // =========================================================
   // 문제풀이 상태
   // =========================================================
-  const [quiz, setQuiz] = useState(null);
-  const [quizLoading, setQuizLoading] = useState(false);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [quizResult, setQuizResult] = useState(null);
-  const [quizError, setQuizError] = useState("");
+  const [practice, setPractice] = useState({});
   const [lessonPractice, setLessonPractice] = useState(null);
   const [learningReturnId, setLearningReturnId] = useState(null);
+  const generalPracticeKey = `general:${selectedCert}`;
+  const practiceKey = lessonPractice ? `lesson:${lessonPractice.id}` : generalPracticeKey;
+  const {
+    quiz = null, quizLoading = false, selectedAnswer = null,
+    quizResult = null, quizError = "", quizSubmitting = false,
+  } = practice[practiceKey] ?? {};
+
+  const updatePractice = (key, patch) => {
+    setPractice(current => ({ ...current, [key]: { ...current[key], ...patch } }));
+  };
 
   // 문제풀이 소크라테스 문답 상태
   // 평가 결과와 문답은 서버에 저장하며 객관식 통계와 분리합니다.
@@ -206,13 +214,16 @@ function App() {
     setSocraticCompleted(false);
   };
 
-  const completeLearningReset = result => {
-    quizRequest.current?.abort(); quizRequest.current = null;
-    submitRequest.current?.abort(); submitRequest.current = null;
-    setQuiz(null); setQuizLoading(false); setQuizSubmitting(false);
-    setQuizResult(null); setSelectedAnswer(null); setQuizError("");
+  const clearPractice = () => {
+    for (const controller of practiceRequests.current.values()) controller.abort();
+    practiceRequests.current.clear();
+    setPractice({});
     setLessonPractice(null);
     resetSocraticPractice();
+  };
+
+  const completeLearningReset = result => {
+    clearPractice();
     if (result.include_progress && result.cert === "EIP") setLearningReturnId(null);
     try { localStorage.removeItem(`mock-exam:${result.cert}`); } catch { /* Restoration also handles discarded exams. */ }
     refreshStats();
@@ -281,77 +292,61 @@ function App() {
   const changeCertification = label => {
     if (label === selectedCert) return;
     setResetNotice("");
-    // 자격증 변경 시 대화 기록만 초기화하며 프로필/학습실 위치는 유지합니다.
     resetChat();
-    quizRequest.current?.abort();
-    submitRequest.current?.abort();
-    quizRequest.current = null;
-    submitRequest.current = null;
-    setQuizLoading(false);
-    setQuizSubmitting(false);
-    setQuiz(null);
-    setSelectedAnswer(null);
-    setQuizResult(null);
-    setQuizError("");
-    resetSocraticPractice();
+    clearPractice();
     setSelectedCert(label);
-    setLessonPractice(null);
   };
-  const loadQuiz = async (requestedLesson = null) => {
-    const scope = requestedLesson?.id ? requestedLesson : null;
+  const loadQuiz = async scope => {
+    const key = scope ? `lesson:${scope.id}` : generalPracticeKey;
     setCurrentPage("quiz");
-    resetSocraticPractice();
-    if (quizRequest.current || submitRequest.current) return;
     setLessonPractice(scope);
+    const pending = practiceRequests.current.has(key);
+    if (key !== practiceKey || !pending) resetSocraticPractice();
+    if (pending) return;
     if (!scope && !selectedCertId) {
-      setQuiz(null);
-      setQuizError(connectionError
+      updatePractice(key, { quiz: null, quizError: connectionError
         ? `자격증 목록 API에 연결하지 못했습니다. ${connectionError}`
-        : "자격증 목록을 불러온 뒤 다시 시도해 주세요. API 서버 실행 여부를 확인해 주세요.");
+        : "자격증 목록을 불러온 뒤 다시 시도해 주세요. API 서버 실행 여부를 확인해 주세요." });
       return;
     }
     const controller = new AbortController();
-    quizRequest.current = controller;
-    setQuizLoading(true);
-    setQuiz(null);
-    setQuizResult(null);
-    setSelectedAnswer(null);
-    setQuizError("");
+    practiceRequests.current.set(key, controller);
+    updatePractice(key, { quizLoading: true, quiz: null, quizResult: null, selectedAnswer: null, quizError: "" });
     try {
       const data = await apiRequest("/api/quiz", {
         signal: controller.signal, body: scope ? { cert: 'EIP', mode: 'lesson', lesson_id: scope.id } : { cert: selectedCertId },
       });
-      if (quizRequest.current === controller) setQuiz(data);
+      if (!controller.signal.aborted) updatePractice(key, { quiz: data });
     } catch (error) {
-      if (quizRequest.current === controller && error.name !== "AbortError") setQuizError(error.message);
+      if (!controller.signal.aborted) updatePractice(key, { quizError: error.message });
     } finally {
-      if (quizRequest.current === controller) {
-        quizRequest.current = null;
-        setQuizLoading(false);
+      if (practiceRequests.current.get(key) === controller) {
+        practiceRequests.current.delete(key);
+        updatePractice(key, { quizLoading: false });
       }
     }
   };
   const submitQuiz = async () => {
-    if (!quiz || selectedAnswer === null || quizResult || submitRequest.current) return;
+    const key = practiceKey;
+    if (!quiz || selectedAnswer === null || quizResult || practiceRequests.current.has(key)) return;
     const controller = new AbortController();
-    submitRequest.current = controller;
-    setQuizSubmitting(true);
-    setQuizError("");
+    practiceRequests.current.set(key, controller);
+    updatePractice(key, { quizSubmitting: true, quizError: "" });
     try {
       const data = await apiRequest("/api/quiz/submit", {
         signal: controller.signal,
         body: { attempt_id: quiz.attempt_id, selected_answer: selectedAnswer },
       });
-      if (submitRequest.current === controller) {
-        setQuizResult(data);
+      if (!controller.signal.aborted) {
+        updatePractice(key, { quizResult: data });
         refreshStats();
       }
     } catch (error) {
-      if (submitRequest.current === controller && error.name !== "AbortError") setQuizError(error.message);
+      if (!controller.signal.aborted) updatePractice(key, { quizError: error.message });
     } finally {
-      if (submitRequest.current === controller) {
-        submitRequest.current = null;
-        setQuizSubmitting(false);
+      if (practiceRequests.current.get(key) === controller) {
+        practiceRequests.current.delete(key);
+        updatePractice(key, { quizSubmitting: false });
       }
     }
   };
@@ -371,19 +366,27 @@ function App() {
   // 문제풀이실로 명시적으로 이동할 때만 activeArea를 전환합니다.
   const openPractice = () => {
     setActiveArea("practice");
-    void loadQuiz();
+    if (!practice[generalPracticeKey]?.quiz && !practiceRequests.current.has(generalPracticeKey)) {
+      void loadQuiz(null);
+      return;
+    }
+    if (lessonPractice) resetSocraticPractice();
+    setLessonPractice(null);
+    setCurrentPage("quiz");
   };
   const openStudy = () => {
     setActiveArea("study");
     setCurrentPage("learn");
   };
   const openLessonPractice = lesson => {
-    quizRequest.current?.abort();
-    quizRequest.current = null;
     setSelectedCert("정보처리기사");
     setLearningReturnId(lesson.id);
     setActiveArea("practice");
     void loadQuiz(lesson);
+  };
+  const openPdfSummary = () => {
+    setHasOpenedPdf(true);
+    setCurrentPage("pdfSummary");
   };
   const openProfile = () => {
     if (currentPage === "profile") return;
@@ -457,11 +460,11 @@ function App() {
             <button type="button" className={`menu-item ${currentPage === "learn" ? "active" : ""}`} onClick={openStudy}>
               <span className="menu-icon">▤</span>{!sidebarCollapsed && <span>개념 학습</span>}
             </button>
-            <button type="button" className={`menu-item ${currentPage === "pdfSummary" ? "active" : ""}`} title="PDF 요약" aria-label="PDF 요약" onClick={() => setCurrentPage("pdfSummary")}>
+            <button type="button" className={`menu-item ${currentPage === "pdfSummary" ? "active" : ""}`} title="PDF 요약" aria-label="PDF 요약" onClick={openPdfSummary}>
               <span className="menu-icon" aria-hidden="true">▧</span>{!sidebarCollapsed && <span>PDF 요약</span>}
             </button>
           </> : <>
-            <button type="button" className={`menu-item ${currentPage === "quiz" ? "active" : ""}`} onClick={loadQuiz}>
+            <button type="button" className={`menu-item ${currentPage === "quiz" ? "active" : ""}`} onClick={openPractice}>
               <span className="menu-icon">□</span>{!sidebarCollapsed && <span>문제 풀이</span>}
             </button>
             <button type="button" className={`menu-item ${currentPage === "chat" ? "active" : ""}`} onClick={() => setCurrentPage("chat")}>
@@ -516,8 +519,9 @@ function App() {
         </button>
         </div>
       </header>
-           {currentPage === "pdfSummary" && <div className="concept-learning pdf-host"><PdfSummaryPage answerLength={answerLength} onAnswerLengthChange={setAnswerLength}
-        tutorChat={{ messages, loading: chatLoading, error: chatError, ready: Boolean(selectedCertId), send: sendMessage }} /></div>}
+      {hasOpenedPdf && <div className="concept-learning pdf-host" hidden={currentPage !== "pdfSummary"}>
+        <PdfSummaryPage answerLength={answerLength} onAnswerLengthChange={setAnswerLength} />
+      </div>}
       {currentPage === "home" && <div className="study-home"><HomePage onStart={openStudy} /></div>}
       {currentPage === "learn" && <div className="concept-learning"><LearningPage headerTitleTarget={learningTitleTarget} headerActionsTarget={learningActionsTarget} returnLessonId={learningReturnId} onLessonChange={setLearningReturnId} onPractice={openLessonPractice}
         tutorChat={{ messages, loading: chatLoading, error: chatError, ready: Boolean(selectedCertId), send: sendMessage }} /></div>}
@@ -671,7 +675,7 @@ function App() {
                     optionClass += " incorrect";
                   }
                 }
-                return <button type="button" key={number} className={optionClass} disabled={!!quizResult || quizSubmitting} onClick={() => setSelectedAnswer(number)}>
+                return <button type="button" key={number} className={optionClass} disabled={!!quizResult || quizSubmitting} onClick={() => updatePractice(practiceKey, { selectedAnswer: number })}>
                   <span className="quiz-option-number">{number}</span>
                   <span>
                     {option.replace(/^\s*\d+\s*[).:-]?\s*/, "")}
@@ -816,7 +820,7 @@ function App() {
         key={selectedCert}
         cert={selectedCertId} label={selectedCert} stats={stats}
         loading={statsLoading || (!selectedCertId && !connectionError)} error={statsError || connectionError}
-        onRefresh={refreshLearningData} onGeneralPractice={loadQuiz}
+        onRefresh={refreshLearningData} onGeneralPractice={openPractice}
       />}
       {/* =================================================
             취약점 개념 요약

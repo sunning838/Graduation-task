@@ -4,6 +4,7 @@
 // USE_MOCK = false → 실제 백엔드 연결 (Gemini 키 필요)
 // ─────────────────────────────────────────────────────────────
 import catalogData from '../data/catalog.json';
+import { apiRequest } from '../../api.js';
 
 const USE_MOCK = false;
 const BASE_URL = 'http://localhost:8000'; // 백엔드 주소
@@ -162,44 +163,22 @@ export async function createAudioLecture(lessonId, variant, text) {
   });
 }
 
-export async function summarizePdf(
-  file,
-  answerLength = 'medium'
-) {
+export function summarizePdf(file, answerLength, signal) {
   const formData = new FormData();
-
   formData.append('file', file);
-  formData.append(
-    'answer_length',
-    answerLength
-  );
+  formData.append('answer_length', answerLength);
+  return apiRequest('/api/pdf-summary', { body: formData, signal });
+}
 
-  let response;
-
-  try {
-    response = await fetch(
-      `${BASE_URL}/api/pdf-summary`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-  } catch {
-    throw new Error(
-      '서버에 연결하지 못했습니다. 백엔드 실행 상태를 확인해 주세요.'
-    );
-  }
-
-  const data = await response
-    .json()
-    .catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(
-      data?.detail?.message ||
-      'PDF 개념 요약을 생성하지 못했습니다.'
-    );
-  }
-
-  return data;
+export function askPdf(record, question, history, answerLength, signal) {
+  return apiRequest('/api/pdf-summary/question', {
+    body: {
+      source_pages: record.sourcePages,
+      summary: (record.summary ?? '').slice(0, 3500),
+      question,
+      history,
+      answer_length: answerLength,
+    },
+    signal,
+  });
 }

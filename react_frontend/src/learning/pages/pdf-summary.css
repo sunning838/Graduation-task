@@ -21,6 +21,18 @@
 .pdf-summary-description p, .pdf-mock-result p, .pdf-mock-result li { line-height: 1.8; font-size: 14px; }
 .pdf-summary-description .pdf-demo-notice { color: var(--text-muted); font-size: 12px; }
 .pdf-extract-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+.pdf-recent { margin-top: 32px; }
+.pdf-recent h2 { margin: 0 0 12px; font-size: 20px; }
+.pdf-recent ul { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.pdf-recent button {
+  display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px 16px;
+  width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg-sidebar); color: var(--text-main); text-align: left; cursor: pointer;
+}
+.pdf-recent button:hover:not(:disabled) { background: var(--bg-hover); }
+.pdf-recent button:disabled { opacity: .5; cursor: default; }
+.pdf-recent strong { overflow-wrap: anywhere; font-size: 14px; }
+.pdf-recent time { color: var(--text-muted); font-size: 12px; }
 /* 답변 길이: 올리기 상자 바로 아래 왼쪽 */
 .pdf-options { display: flex; justify-content: flex-start; margin-top: 16px; }
 .pdf-options .ps-length { height: 44px; padding: 4px; border-radius: 22px; }
@@ -96,6 +108,7 @@
 
 /* App.jsx에서 PDF 화면을 감싸는 상자: 튜터 창(학습실과 같은 모양)을 쓰려고 concept-learning 안에 둡니다. */
 .concept-learning.pdf-host { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.concept-learning.pdf-host[hidden] { display: none; }
 /* concept-learning 안의 button { font: inherit } 규칙이 올리기 화면 버튼 글씨를 덮지 않도록 */
 .concept-learning.pdf-host .pdf-select-button { font-weight: 600; }
 .concept-learning.pdf-host .pdf-file-selection button { font-size: 24px; line-height: 1; }
