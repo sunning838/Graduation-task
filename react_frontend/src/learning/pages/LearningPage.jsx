@@ -167,11 +167,8 @@ export default function LearningPage({ returnLessonId, onLessonChange, onPractic
     {headerActionsTarget && createPortal(<span className="learning-header-progress" aria-label={`학습 진도 ${lessons.length}개 중 ${done}개 완료`}>학습 진도 {done} / {lessons.length} · {percent}%</span>, headerActionsTarget)}
     {progressAlert}
     <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0 }}>
-      <LessonIndex config={catalog.config} cert={CERT} lessons={lessons} states={states} onOpen={saveAndMove} />
-      <div className="learning-index-footer">
-        <button type="button" className="btn btn-ghost" onClick={() => saveAndMove(lessons[0])}>처음부터</button>
-        <button type="button" className="btn btn-ghost" disabled={!last} onClick={() => saveAndMove(last)}>이어서 학습</button>
-      </div>
+      {/* 목차 (B2): 과목 목록 + 이어서 학습 카드 + 단원 2열 — 처음부터/이어서 학습 버튼은 목차 카드 안에 있음 */}
+      <LessonIndex config={catalog.config} cert={CERT} lessons={lessons} states={states} last={last} onOpen={saveAndMove} />
     </fieldset>
   </div></div>;
 

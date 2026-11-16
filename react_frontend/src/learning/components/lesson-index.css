@@ -1,0 +1,109 @@
+/* =========================================================
+   개념 학습 - 목차 화면 (B2: 과목 목록 + 이어서 학습 카드 + 단원 2열)
+   li- 로 시작하는 클래스만 씁니다. 카드/링은 learning-soft.css의 ls-card, ls-ring을 같이 씁니다.
+   색은 App.css 테마 변수를 써서 다크/라이트 모드를 따라갑니다.
+========================================================= */
+.concept-learning .li-index {
+  --li-blue: #3b9cff;
+  --li-row: color-mix(in srgb, var(--text-main) 4%, transparent);
+  display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start;
+  letter-spacing: -.01em;
+}
+.concept-learning .li-visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── 왼쪽: 과목 목록 ── */
+.concept-learning .li-subjects { display: flex; flex-direction: column; gap: 4px; padding: 14px; }
+.concept-learning .li-subjects h3 { margin: 6px 10px 10px; font-size: 16px; font-weight: 700; }
+.concept-learning .li-subject {
+  display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 14px; border: 0; border-radius: 18px;
+  background: transparent; color: var(--text-main); font-size: 14px; text-align: left; cursor: pointer; transition: background .15s;
+}
+.concept-learning .li-subject:hover { background: var(--ls-tint); }
+.concept-learning .li-subject.is-active { background: var(--ls-tint-strong); }
+.concept-learning .li-subject-top { display: flex; justify-content: space-between; gap: 8px; width: 100%; }
+.concept-learning .li-subject-top strong { font-size: 14px; font-weight: 600; }
+.concept-learning .li-subject-top span { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.concept-learning .li-bar { display: block; width: 100%; height: 5px; border-radius: 3px; background: var(--ls-tint-strong); overflow: hidden; }
+.concept-learning .li-bar span { display: block; height: 100%; border-radius: 3px; background: var(--li-blue); transition: width .3s; }
+
+/* ── 오른쪽 카드 ── */
+.concept-learning .li-main { display: flex; flex-direction: column; gap: 16px; padding: 18px; }
+.concept-learning .li-hero {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 18px 20px; border-radius: 22px; background: var(--ls-tint);
+}
+.concept-learning .li-hero-text { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.concept-learning .li-ring { width: 54px; height: 54px; }
+.concept-learning .li-ring span { width: 44px; height: 44px; font-size: 12px; background: color-mix(in srgb, var(--ls-card), var(--text-main) 7%); }
+.concept-learning .li-hero-sub { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.concept-learning .li-hero-title { margin: 4px 0 0; font-size: 21px; font-weight: 700; letter-spacing: -.03em; line-height: 1.35; overflow-wrap: anywhere; }
+.concept-learning .li-hero-actions { display: flex; gap: 10px; flex: 0 0 auto; }
+.concept-learning .li-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 18px; border: 0; border-radius: 23px;
+  background: var(--ls-tint-strong); color: var(--text-main); font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  transition: filter .15s, background .15s;
+}
+.concept-learning .li-btn:hover:not(:disabled) { filter: brightness(1.15); }
+.concept-learning .li-btn-primary {
+  padding: 0 16px 0 20px; background: var(--send-bg); color: var(--send-text); font-size: 15px; font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+}
+.app.light .concept-learning .li-btn-primary { box-shadow: 0 6px 18px rgba(0, 0, 0, .12); }
+.concept-learning .li-btn:disabled { opacity: .45; cursor: default; }
+
+/* ── 단원 2열 ── */
+.concept-learning .li-list-title { margin: 0 6px; font-size: 14px; font-weight: 700; color: var(--text-secondary); }
+.concept-learning .li-lessons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; margin: 0; padding: 0; list-style: none; }
+.concept-learning .li-lesson {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 8px 14px; border: 0; border-radius: 16px;
+  background: var(--li-row); color: var(--text-main); font-size: 13px; font-weight: 500; text-align: left; cursor: pointer;
+  transition: background .15s;
+}
+.concept-learning .li-lesson:hover { background: var(--ls-tint-strong); }
+.concept-learning .li-lesson.is-done { color: var(--text-muted); }
+.concept-learning .li-dot {
+  flex: 0 0 auto; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--border-light); color: var(--text-muted); font-size: 11px; font-weight: 700;
+}
+.concept-learning .li-lesson.is-done .li-dot { background: var(--li-blue); box-shadow: none; color: #fff; }
+.concept-learning .li-lesson-title {
+  flex: 1; min-width: 0; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 고른 단원: 파란 테두리 */
+.concept-learning .li-lesson.is-picked { background: color-mix(in srgb, var(--li-blue) 16%, transparent); box-shadow: inset 0 0 0 2px var(--li-blue); }
+.concept-learning .li-lesson.is-picked .li-dot { box-shadow: inset 0 0 0 2px var(--li-blue); color: var(--li-blue); }
+.concept-learning .li-lesson.is-done.is-picked .li-dot { background: var(--li-blue); color: #fff; }
+
+/* ── 아래 '학습하기' 바 ── */
+.concept-learning .li-pick {
+  position: sticky; bottom: 12px; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 14px 14px 14px 20px; border-radius: 22px; background: var(--bg-message);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 0 0 1px color-mix(in srgb, var(--li-blue) 55%, transparent);
+  animation: li-pick-in .2s ease-out;
+}
+.app.light .concept-learning .li-pick { background: var(--bg-main); box-shadow: 0 10px 30px rgba(0, 0, 0, .12), inset 0 0 0 1px color-mix(in srgb, var(--li-blue) 55%, transparent); }
+.concept-learning .li-pick-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.concept-learning .li-pick-text span { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.concept-learning .li-pick-text strong { font-size: 16px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.concept-learning .li-pick-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+@keyframes li-pick-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .concept-learning .li-pick { animation: none; } }
+
+.concept-learning .li-index button:focus-visible { outline: 2px solid var(--li-blue); outline-offset: 2px; }
+
+/* ── 좁은 화면 ── */
+@media (max-width: 900px) {
+  .concept-learning .li-index { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .concept-learning .li-lessons { grid-template-columns: 1fr; }
+  .concept-learning .li-hero-actions { width: 100%; }
+  .concept-learning .li-hero-actions .li-btn { flex: 1; justify-content: center; }
+  .concept-learning .li-pick-actions { width: 100%; }
+  .concept-learning .li-pick-actions .li-btn { flex: 1; justify-content: center; }
+}
