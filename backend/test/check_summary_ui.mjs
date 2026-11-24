@@ -11,7 +11,8 @@ const server = await createServer({ root: fileURLToPath(new URL('../../react_fro
 try {
   const { SummaryContent } = await server.ssrLoadModule('/src/SummaryNotes.jsx');
   const { summaryMarkdown } = await server.ssrLoadModule('/src/summaryDownload.js');
-  const props = { label: '정보처리기사', onGenerate() {}, onReload() {}, onDownload() {} };
+  const label = '정보처리기사';
+  const props = { onGenerate() {}, onReload() {}, onDownload() {} };
   const data = { weakness: { message: '기록 부족', ranking: [], min_attempts: 5, accuracy_threshold: 60 },
     notes: [], can_generate: false, needs_update: false, generating: false, issues: [] };
   const render = extra => renderToStaticMarkup(createElement(SummaryContent, { ...props, data, ...extra }));
@@ -38,7 +39,7 @@ try {
   assert.match(render({ busy: true }), /disabled=""[^>]*>요약 생성 중…/);
   assert.match(render({ busy: true }), /정규화/);
 
-  const exported = summaryMarkdown(props.label, data.notes);
+  const exported = summaryMarkdown(label, data.notes);
   assert.ok(exported.includes(note.markdown));
   assert.ok(exported.includes(note.created_at));
   assert.match(exported, /정보처리기사 취약점 개념 요약/);

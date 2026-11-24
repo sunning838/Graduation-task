@@ -44,7 +44,7 @@ export function PreparationProgress({ preparation }) {
   </div>;
 }
 
-export default function MockExam({ cert, label, onSubmitted, onWeakness }) {
+export default function MockExam({ cert, onSubmitted, onWeakness }) {
   const key = `mock-exam:${cert}`;
   const [bank, setBank] = useState(null);
   const [selected, setSelected] = useState([]);

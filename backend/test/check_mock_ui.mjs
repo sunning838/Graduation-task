@@ -31,6 +31,6 @@ try {
   assert.match(render({ submitted: true }), /SECRET_EXPLANATION/);
   assert.match(render({ submitted: true }), /정답: 2/);
   assert.equal((render({ busy: true }).match(/disabled=""/g) || []).length, 4);
-  assert.match(renderToStaticMarkup(createElement(MockExam, { cert: 'EIP', label: '정보처리기사' })), /시험 정보를 불러오는 중/);
+  assert.match(renderToStaticMarkup(createElement(MockExam, { cert: 'EIP' })), /시험 정보를 불러오는 중/);
   console.log('Mock UI checks passed: Markdown, table, code, saved answer, hidden explanations, result, busy, loading.');
 } finally { await server.close(); }

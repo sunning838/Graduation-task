@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { apiRequest } from './api';
 import { downloadSummary } from './summaryDownload';
 
-export function SummaryContent({ label, data, loading, error, busy, onReload, onGenerate, onDownload }) {
+export function SummaryContent({ data, loading, error, busy, onReload, onGenerate, onDownload }) {
   const notes = data?.notes || [];
   const ranking = data?.weakness?.ranking || [];
   const generating = busy || data?.generating;
@@ -146,7 +146,7 @@ export default function SummaryNotes({ cert, label, connectionError, onReconnect
       if (!controller.signal.aborted) { generation.current = null; setBusy(false); }
     }
   };
-  return <SummaryContent label={label} data={data}
+  return <SummaryContent data={data}
     loading={cert ? loaded !== revision : !connectionError} error={error || connectionError} busy={busy}
     onGenerate={generate} onReload={() => { if (!cert) onReconnect(); setRevision(value => value + 1); }}
     onDownload={() => downloadSummary(label, data?.notes || [])} />;

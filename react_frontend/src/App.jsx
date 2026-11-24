@@ -830,7 +830,7 @@ function App() {
       {/* =================================================
             모의고사
          ================================================= */}
-      {currentPage === "mockexam" && <MockExam key={selectedCertId || selectedCert} cert={selectedCertId} label={selectedCert} onSubmitted={refreshStats} onWeakness={() => setCurrentPage("weakness")} />}
+      {currentPage === "mockexam" && <MockExam key={selectedCertId || selectedCert} cert={selectedCertId} onSubmitted={refreshStats} onWeakness={() => setCurrentPage("weakness")} />}
       {currentPage === "profile" && <section className="profile-page">
         <div className="profile-content">
           {/* 페이지 제목 */}
