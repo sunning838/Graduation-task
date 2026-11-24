@@ -1,4 +1,6 @@
-# 백엔드 테스트
+# 프로젝트 테스트
+
+백엔드 자동 테스트와 React 화면 검증 도구를 이 폴더에서 관리합니다.
 
 모든 명령은 프로젝트 루트 `D:\Capstone_Project`에서 실행합니다.
 다른 위치에 복제한 팀원도 해당 프로젝트 루트에서 같은 상대 경로 명령을 사용하면 됩니다.
@@ -30,6 +32,10 @@
 | test_learning_reset.py | 자격증·학습자별 초기화 범위, 두 DB 롤백, 재시도, 늦게 완료된 작업 차단 |
 | check_learning_reset_ui.mjs | 초기화 확인창·취소·선택 진도·실패 재시도·화면 갱신 검사 |
 | check_concept_ui.mjs | 개념학습 SVG·Markdown·초기 화면 렌더링 점검 |
+| check_learning_ui.mjs | 학습 현황·취약점 화면의 기록 없음·분석 결과·로딩·오류 표시 |
+| check_mock_ui.mjs | 모의고사 준비 진행률·문제·저장 답안·해설 표시 |
+| check_summary_ui.mjs | 취약점 개념 요약 표시·실패 시 보존·다운로드 |
+| check_pdf_and_practice_ui.mjs | PDF 최근 요약·문서별 질문·일반/단원 문제풀이 복원 |
 | benchmark_mock_exams.py | 임시 문제은행에서 시험 구성 시간 측정 |
 | tensor_search_smoke.py | 실제 Chroma DB 검색 수동 점검 |
 
@@ -58,7 +64,15 @@ AI 생성 시간이나 브라우저 표시 시간 측정은 아닙니다.
 모델이 로컬에 없으면 최초 다운로드가 발생할 수 있습니다. 기본 자동 테스트에는 포함하지 않습니다.
 
 파일 경로로 직접 실행하지 말고 위처럼 `-m`으로 실행해야 프로젝트 모듈을 정상적으로 찾습니다.
-React 전용 검사는 기존 `react_frontend/scripts`에서 관리합니다.
+React 검증 도구도 이 폴더에서 관리합니다. React 의존성 설치 후 프로젝트 루트에서 실행합니다.
+
+```powershell
+node .\backend\test\check_learning_ui.mjs
+node .\backend\test\check_mock_ui.mjs
+node .\backend\test\check_summary_ui.mjs
+```
+
+위 세 검사는 화면을 테스트용 데이터로 렌더링하며 실제 학습 기록이나 Gemini API를 사용하지 않습니다.
 
 새 개념학습 화면 검사는 테스트 파일 관리 방침에 따라 이 폴더에 추가했습니다.
 프로젝트 루트에서 `node backend/test/check_concept_ui.mjs`로 실행합니다. React 의존성 설치가 필요합니다.
@@ -76,7 +90,7 @@ React 전용 검사는 기존 `react_frontend/scripts`에서 관리합니다.
 강의→단원 문제풀이→학습하던 단원으로 돌아가기의 UI 상태는 같은 앱 실행 중 유지합니다.
 
 실제 Gemini 생성 품질과 시간은 별도 실제 실행 확인이 필요합니다. 자동 테스트는 모의 AI를 사용합니다.
-AudioLecture.jsx, 기존 음성 api.js, TTS 경로·음성 요청 형식은 이번 연동에서 변경하지 않았습니다.
+AudioLecture.jsx와 TTS 경로·음성 요청 형식은 유지합니다.
 ## 슬라이드 강의와 실시간 이미지 검증
 
 - `python -m unittest backend.test.test_lecture_presentation -v`: 외부 API 없이 장면 근거·중복 요청·캐시·재시도·API 계약을 검증합니다. 전체 `python -m backend.test`에도 포함됩니다.

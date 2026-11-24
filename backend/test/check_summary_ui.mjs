@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const server = await createServer({ server: { middlewareMode: true } });
+const require = createRequire(new URL('../../react_frontend/package.json', import.meta.url));
+const { createServer } = await import(pathToFileURL(require.resolve('vite')));
+const { createElement } = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+
+const server = await createServer({ root: fileURLToPath(new URL('../../react_frontend/', import.meta.url)), server: { middlewareMode: true } });
 try {
   const { SummaryContent } = await server.ssrLoadModule('/src/SummaryNotes.jsx');
   const { summaryMarkdown } = await server.ssrLoadModule('/src/summaryDownload.js');
@@ -12,7 +16,7 @@ try {
     notes: [], can_generate: false, needs_update: false, generating: false, issues: [] };
   const render = extra => renderToStaticMarkup(createElement(SummaryContent, { ...props, data, ...extra }));
   const empty = render();
-  assert.match(empty, /취약점 개념 요약/);
+  assert.match(empty, /현재 취약 과목/);
   assert.match(empty, /기록 부족/);
   assert.match(empty, /disabled=""[^>]*>개념 요약 생성/);
   assert.match(empty, /disabled=""[^>]*>요약 다운로드/);
@@ -21,6 +25,7 @@ try {
   const note = { id: 'a', topic: 'database', label: '데이터베이스 구축', markdown: '### 핵심 개념\n\n**정규화**를 복습합니다.',
     created_at: '2026-10-03T00:00:00+00:00', basis: { correct: 1, total: 5, accuracy: 20 }, stale: true, is_current_topic: true };
   data.notes = [note];
+  data.weakness.ranking = [{ topic: note.topic, label: note.label, correct: 1, total: 5, accuracy: 20 }];
   data.can_generate = true;
   data.needs_update = true;
   data.issues = [{ topic: 'database', label: '데이터베이스 구축', message: '생성 실패. 기존 요약은 유지됩니다.' }];

@@ -157,7 +157,7 @@ try {
   await menu('문제 풀이').click();
   await page.getByText('저장된 해설입니다.', { exact: true }).waitFor();
   await page.getByTitle('개념 학습으로 돌아가기').click();
-  await button('처음부터').click();
+  await button('이어서 학습').click();
   await button('문제 풀기').click();
   await page.getByText('Q. 단원 문제', { exact: true }).waitFor();
   assert.equal(quizRequests[1].lesson_id, 'lesson-1');

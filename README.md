@@ -4,44 +4,57 @@
 
 ## 🚀 Key Features
 
-- **Data Pipeline**: 560+개의 정보처리기사 지식 블록을 텐서화
-- **Embedding**: Google Gemini (`gemini-embedding-001`) 최신 모델 적용
+- **Data Pipeline**: 등록된 개념 자료와 기출문제를 청크 단위로 나눠 벡터 DB에 저장
+- **Embedding**: Hugging Face의 `jhgan/ko-sroberta-multitask` 모델 사용
 - **Vector DB**: ChromaDB를 활용한 로컬 지식 베이스 구축
-- **RAG Architecture**: 검색 증강 생성 방식을 통한 정확한 답변 생성
+- **RAG Architecture**: 검색한 참고 자료를 바탕으로 AI 답변 생성
 
 ## 🛠 Tech Stack
 
-- Python 3.14
+- Python 3.12 (현재 개발 환경)
+- FastAPI, React, Vite, Node.js/npm
 - LangChain, ChromaDB
 - Google Gemini API
 
-## 텐서 구동 환경 설치 방법
+## 개발 환경 설치 방법
 
 프로젝트를 다운로드(Clone)한 후 해당 폴더로 이동합니다.
 
-터미널에서 아래 명령어를 실행하여 텐서 처리 및 데이터베이스 구동에 필요한 모든 모듈을 한 번에 설치합니다.
+Python 3.12와 Node.js/npm을 설치한 뒤, 최초 설치 시 프로젝트 루트의 PowerShell에서 실행합니다.
 
-pip install -r requirements.txt
+```powershell
+py -3.12 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+npm.cmd --prefix .\react_frontend ci
+```
 
-streamlit run frontend/app.py 명령어로 서버를 실행합니다
+프로젝트 루트에 `.env.example`을 참고해 `.env` 파일을 만들고 `GOOGLE_API_KEY`를 설정합니다.
+
+`backend/chroma_db/`가 없는 최초 설치 환경에서는 아래 명령으로 RAG DB를 구축합니다.
+기존 RAG DB가 있다면 이 단계는 생략합니다. 이 명령은 기존 벡터 DB를 삭제하고 다시 구축합니다.
+
+```powershell
+.\venv\Scripts\python.exe -m backend.local_tensor_loder
+```
+
+웹 화면 실행 방법은 아래의 React 화면 간편 실행 안내를 따르세요.
 
 ## React 화면 간편 실행
 
 프로젝트 폴더의 `start_web.cmd`를 더블클릭하면 API(8000)와 React(5173)를 실행하고,
 준비 완료 후 브라우저를 엽니다. 실행 창은 유지하고 종료할 때 그 창에서 `Ctrl+C`를 누르세요.
 기존 서버가 같은 포트에서 실행 중이면 먼저 종료해야 합니다.
-최초 Python 가상환경·requirements 및 React의 `npm install`은 미리 완료해야 합니다.
-기존 `start.cmd`는 이전 Streamlit 화면용입니다.
+위의 Python 가상환경·Python/React 패키지 설치와 API 키 설정은 미리 완료해야 합니다.
 
 ## 슬라이드와 함께 듣는 개념 강의
 
 개념학습 화면은 왼쪽 강의 슬라이드와 오른쪽 전체 강의 본문을 함께 표시합니다.
-본문은 처음부터 펼쳐져 있으며, 자유롭게 읽다가 `현재 강의 위치로` 돌아올 수 있습니다.
+본문은 처음부터 펼쳐져 있으며, 음성을 준비한 뒤에는 `여기부터 듣기`로 문단을 선택해 들을 수 있습니다.
 하단에서 음성 재생·탐색·배속을 조절하고, `튜터에게 질문`으로 질문 패널을 엽니다.
 음성 생성 엔진과 문제풀이 API는 기존 기능을 그대로 사용합니다.
 
 강의를 열면 본문과 텍스트 슬라이드를 표시하고 동일한 본문의 저장된 그림을 확인합니다.
-`설명 그림 만들기`를 누르면 현재 설명 탭의 전체 슬라이드에 대해 실제 강의 내용과 등록된 개념 자료를 바탕으로 그림을 생성합니다.
+`설명 그림 만들기`를 누르면 현재 강의의 전체 슬라이드에 대해 실제 강의 내용과 등록된 개념 자료를 바탕으로 그림을 생성합니다.
 슬라이드마다 제목·핵심 문장·설명 그림 한 장을 함께 기획합니다.
 장면의 원문 근거 확인과 생성 이미지의 AI 검수를 거친 그림만 표시합니다.
 이미지 목표 수는 실제 슬라이드 수와 같습니다. 슬라이드는 강의당 최대 16장이고 초기 임시 화면에도 같은 상한을 적용합니다.
@@ -56,7 +69,7 @@ AI 검수는 정확성을 보장하지 않으므로 실제 강의 사례를 통�
 기본 모델은 `gemini-3.1-flash-image`, 기획·검수 모델은 `gemini-2.5-flash`입니다.
 필요하면 `.env`에 `LECTURE_IMAGE_MODEL`, `LECTURE_IMAGE_REVIEW_MODEL`을 지정합니다.
 키는 백엔드에서만 사용하며, 생성 파일과 내부 근거 기록은 `backend/storage/lecture_images/`에 저장됩니다.
-이 폴더는 Git에서 제외되며 삭제 시 다음 학습 요청에서 다시 생성합니다.
+이 폴더는 Git에서 제외되며, 삭제 후에는 `설명 그림 만들기` 버튼으로 다시 생성합니다.
 
 변경 후 기존 서버를 종료하고 `start_web.cmd`로 다시 실행하세요.
 

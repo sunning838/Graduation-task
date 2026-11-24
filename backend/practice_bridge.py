@@ -1,4 +1,4 @@
-"""Integrate file-grounded practice with the existing quiz screen."""
+"""Generate file-grounded practice questions for the React API."""
 from backend.learning import catalog
 
 
@@ -18,13 +18,3 @@ def scoped_quiz(engine, lesson, cert):
     data['concept_id'] = lesson['id']
     data['source'] = lesson['source']
     return data
-
-
-def install(engine, lesson):
-    original = engine.generate_advanced_quiz
-    def generate(target_topic=None, cert='EIP', generated_history=None):
-        import streamlit as st
-        if lesson and cert == lesson['cert'] and st.session_state.get('mode') != 'mock_exam':
-            return scoped_quiz(engine, lesson, cert)
-        return original(target_topic=target_topic, cert=cert, generated_history=generated_history)
-    engine.generate_advanced_quiz = generate

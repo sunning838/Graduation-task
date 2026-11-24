@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const require = createRequire(new URL('../../react_frontend/package.json', import.meta.url));
+const { createServer } = await import(pathToFileURL(require.resolve('vite')));
+const { createElement } = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
 
 // Offline component rendering checks; never calls Gemini or the project database.
-const server = await createServer({ server: { middlewareMode: true } });
+const server = await createServer({ root: fileURLToPath(new URL('../../react_frontend/', import.meta.url)), server: { middlewareMode: true } });
 try {
   const { default: Dashboard } = await server.ssrLoadModule('/src/LearningDashboard.jsx');
   const { default: Weakness } = await server.ssrLoadModule('/src/WeaknessTraining.jsx');
@@ -18,7 +22,9 @@ try {
   };
   const empty = renderToStaticMarkup(createElement(Dashboard, { stats, onRetry: noop }));
   assert.match(empty, /아직 풀이 기록이 없습니다/);
-  assert.match(empty, /미학습/);
+  assert.match(empty, /과목별 정답률 펼치기/);
+  assert.match(empty, /aria-expanded="false"/);
+  assert.doesNotMatch(empty, /id="learning-subject-accuracy-list"/);
   assert.doesNotMatch(empty, /0문제 정답 · 0%/);
   const missing = renderToStaticMarkup(createElement(Weakness, { cert: 'EIP', label: '정보처리기사', stats, onRefresh: noop, onGeneralPractice: noop }));
   assert.match(missing, /분석할 기록 부족/);

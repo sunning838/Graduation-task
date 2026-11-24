@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const server = await createServer({ server: { middlewareMode: true } });
+const require = createRequire(new URL('../../react_frontend/package.json', import.meta.url));
+const { createServer } = await import(pathToFileURL(require.resolve('vite')));
+const { createElement } = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+
+const server = await createServer({ root: fileURLToPath(new URL('../../react_frontend/', import.meta.url)), server: { middlewareMode: true } });
 try {
   const { ExamQuestion, PreparationProgress, default: MockExam } = await server.ssrLoadModule('/src/MockExam.jsx');
   const progress = renderToStaticMarkup(createElement(PreparationProgress, { preparation: {

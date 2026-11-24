@@ -20,8 +20,6 @@ distro==1.9.0
 durationpy==0.10
 filelock==3.25.2
 filetype==1.2.0
-Flask==3.1.2
-flask-cors==6.0.1
 flatbuffers==25.12.19
 frozenlist==1.8.0
 fsspec==2026.2.0
@@ -128,10 +126,6 @@ xxhash==3.6.0
 yarl==1.23.0
 zipp==3.23.0
 zstandard==0.25.0
-
-plotly==7.1.0
-
-streamlit==1.57.0
 
 langchain-chroma==1.1.0
 fastapi==0.142.2
