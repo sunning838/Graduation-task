@@ -56,7 +56,7 @@ function App() {
   const [learningTitleTarget, setLearningTitleTarget] = useState(null);
   const [learningActionsTarget, setLearningActionsTarget] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedCert, setSelectedCert] = useState("정보처리기사");
   const [certifications, setCertifications] = useState([]);
   const [connectionError, setConnectionError] = useState("");

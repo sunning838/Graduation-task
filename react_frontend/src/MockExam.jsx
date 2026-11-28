@@ -49,6 +49,7 @@ export default function MockExam({ cert, onSubmitted, onWeakness }) {
   const [bank, setBank] = useState(null);
   const [selected, setSelected] = useState([]);
   const [count, setCount] = useState(20);
+  const [subjectCounts, setSubjectCounts] = useState(null);
   const [exam, setExam] = useState(null);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -79,6 +80,7 @@ export default function MockExam({ cert, onSubmitted, onWeakness }) {
         if (restored && restored.cert !== cert) throw new Error('저장된 시험의 자격증이 일치하지 않습니다.');
         if (!controller.signal.aborted) {
           setBank(data); setSelected(saved?.pending?.distribution?.map(p => p.topic) || data.subjects.map(s => s.topic));
+          setSubjectCounts(saved?.pending?.distribution ? Object.fromEntries(saved.pending.distribution.map(p => [p.topic, p.count])) : null);
           if (saved?.pending?.distribution) setCount(saved.pending.distribution.reduce((sum, p) => sum + p.count, 0));
           setExam(restored); setPreparation(preparing); setIndex(0); setError('');
         }
@@ -132,7 +134,28 @@ export default function MockExam({ cert, onSubmitted, onWeakness }) {
     }
     finally { lock.current = false; if (mounted.current) setBusy(false); }
   }
-  const distribution = distribute((bank?.subjects || []).filter(s => selected.includes(s.topic)).map(s => s.topic), count);
+  const selectedTopics = (bank?.subjects || []).filter(s => selected.includes(s.topic)).map(s => s.topic);
+  const distribution = subjectCounts === null
+    ? distribute(selectedTopics, count)
+    : selectedTopics.map(topic => ({ topic, count: subjectCounts[topic] || 0 })).filter(p => p.count > 0);
+  const changeTotal = value => { setCount(value); setSubjectCounts(null); };
+  const changeSubjectCount = (topic, value) => {
+    if (!Number.isInteger(value) || value < 0 || value > 100) return;
+    const next = Object.fromEntries(distribution.map(p => [p.topic, p.count]));
+    next[topic] = value;
+    setSubjectCounts(next);
+    setCount(selectedTopics.reduce((sum, key) => sum + (next[key] || 0), 0));
+  };
+  const toggleSubject = topic => {
+    const nextSelected = selected.includes(topic) ? selected.filter(t => t !== topic) : [...selected, topic];
+    setSelected(nextSelected);
+    if (subjectCounts !== null) {
+      const next = { ...subjectCounts };
+      if (!selected.includes(topic)) next[topic] = next[topic] || 1;
+      setSubjectCounts(next);
+      setCount(nextSelected.reduce((sum, key) => sum + (next[key] || 0), 0));
+    }
+  };
   const validCount = Number.isInteger(count) && count >= 1 && count <= 100;
   const start = () => action(async () => {
     const saved = readSaved(key);
@@ -161,14 +184,39 @@ export default function MockExam({ cert, onSubmitted, onWeakness }) {
     {error && <div role="alert"><p>{error}</p>{!busy && <button onClick={() => { setLoading(true); setReload(n => n + 1); }}>서버 상태 다시 확인</button>}
       {!bank && !busy && !loading && <button onClick={reset}>저장된 시험 연결 해제</button>}</div>}
     {loading ? <p role="status">시험 정보를 불러오는 중…</p> : !bank ? <button onClick={() => { setLoading(true); setReload(n => n + 1); }}>다시 불러오기</button> : preparation ? <PreparationProgress preparation={preparation} /> : !exam ? <>
-      <p>과목과 문항 수를 선택하세요. 필요한 문제는 AI가 준비하며, 준비가 끝나면 시험이 시작됩니다.</p>
-      <label>전체 문항 수 <input type="number" min="1" max="100" value={count} disabled={busy} onChange={e => setCount(Number(e.target.value))} /></label>
-      <div className="bank-subjects">{bank.subjects.map(s => <label key={s.topic}>
-        <input type="checkbox" checked={selected.includes(s.topic)} disabled={busy} onChange={() => setSelected(current => current.includes(s.topic) ? current.filter(t => t !== s.topic) : [...current, s.topic])} />
-        {s.label} · 이번 시험 {distribution.find(p => p.topic === s.topic)?.count || 0}개
-      </label>)}</div>
-      <p>선택한 과목에 문항을 고르게 배분합니다. 같은 시험에는 같은 문제가 중복되지 않습니다.</p>
-      <button disabled={busy || !validCount || !distribution.length} onClick={start}>{busy ? '시험 구성 중…' : '모의고사 시작'}</button>
+      <div className="exam-setup">
+        <section className="exam-setup-settings" aria-labelledby="exam-settings-title">
+          <h2 id="exam-settings-title">시험 설정</h2>
+          <label className="exam-count-label" htmlFor="exam-question-count">전체 문항 수</label>
+          <div className="exam-count-control"><input id="exam-question-count" type="number" min="1" max="100" value={count} disabled={busy} aria-describedby="exam-count-help" onChange={e => changeTotal(Number(e.target.value))} /><span>문항</span></div>
+          <p id="exam-count-help" className="exam-setup-muted">1~100문항으로 구성할 수 있어요.</p>
+          {!validCount && <p className="exam-count-error" role="status">전체 문항 수를 1~100문항으로 맞춰 주세요.</p>}
+          <div className="exam-setup-note">전체 문항 수를 바꾸면 고르게 배분합니다. 과목별 문항 수도 직접 조절할 수 있어요.</div>
+        </section>
+        <section className="exam-setup-subjects" aria-labelledby="exam-subjects-title">
+          <div className="exam-setup-summary">
+            <div><span className="exam-setup-muted">나의 모의고사</span><h2>{selected.length}개 과목 · {validCount ? count : '—'}문항</h2></div>
+            <button type="button" className="exam-setup-start" disabled={busy || !validCount || !distribution.length} onClick={start}>{busy ? '시험 구성 중…' : '모의고사 시작'}<span aria-hidden="true">›</span></button>
+          </div>
+          <div className="exam-subjects-heading"><h2 id="exam-subjects-title">출제 과목</h2><span className="exam-setup-muted">과목 카드를 눌러 선택하세요</span></div>
+          <div className="exam-subject-grid">{bank.subjects.map(s => {
+            const checked = selected.includes(s.topic);
+            const assigned = distribution.find(p => p.topic === s.topic)?.count || 0;
+            return <div key={s.topic} className={`exam-subject-card${checked ? ' is-selected' : ''}${busy ? ' is-disabled' : ''}`}>
+              <label className="exam-subject-toggle">
+                <input type="checkbox" checked={checked} disabled={busy} onChange={() => toggleSubject(s.topic)} />
+                <span className="exam-subject-check" aria-hidden="true">{checked ? '✓' : ''}</span>
+                <span className="exam-subject-info"><strong>{s.label}</strong><span>{checked ? `이번 시험 ${assigned}문항` : '선택 안 함'}</span></span>
+              </label>
+              <div className="exam-subject-count">
+                <input type="number" min="0" max="100" step="1" value={checked ? assigned : 0} disabled={busy || !checked} aria-label={`${s.label} 문항 수`} onChange={e => changeSubjectCount(s.topic, Number(e.target.value))} />
+                <span>문항</span>
+              </div>
+            </div>;
+          })}</div>
+          <p className="exam-setup-muted exam-setup-help">필요한 문제는 AI가 준비하며, 준비가 끝나면 시험이 시작됩니다.</p>
+        </section>
+      </div>
     </> : <>
       {submitted ? <div className="bank-result"><h2>결과: {exam.result.score}점</h2>
         <p>{exam.result.total}문항 중 {exam.result.correct}개 정답 · 미응답 {exam.result.unanswered}개</p>
